@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+dataset/base-joconde-extrait_src.csv
+dataset/base-joconde-extrait.csv
+dataset/base-joconde-extrait_encoding.csv
+dataset/cojoden_creation_oeuvres.csv
+dataset/cojoden_oeuvres.csv
+dataset/*.csv
