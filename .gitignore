@@ -133,3 +133,5 @@ dataset/base-joconde-extrait_encoding.csv
 dataset/cojoden_creation_oeuvres.csv
 dataset/cojoden_oeuvres.csv
 dataset/*.csv
+dataset/*.csv2
+dataset/*.bak

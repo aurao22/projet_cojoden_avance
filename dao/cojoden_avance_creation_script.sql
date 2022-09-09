@@ -28,14 +28,20 @@ CREATE TABLE IF NOT EXISTS `cojoden`.`ARTISTE` (
   PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
-DROP TABLE IF EXISTS `cojoden`.`METIER_has_ARTISTE`;
+DROP TABLE IF EXISTS `cojoden`.`PRATIQUER`;
 
-CREATE TABLE IF NOT EXISTS `cojoden`.`METIER_has_ARTISTE` (
+CREATE TABLE IF NOT EXISTS `cojoden`.`PRATIQUER` (
   `metier` VARCHAR(100) NOT NULL,
   `artiste` INT NOT NULL,
   PRIMARY KEY (`metier`, `artiste`),
-  CONSTRAINT `fk_mear_metier` FOREIGN KEY (`metier`) REFERENCES `cojoden`.`METIER` (`metier_search`),
-  CONSTRAINT `fk_mear_artiste` FOREIGN KEY (`artiste`) REFERENCES `cojoden`.`ARTISTE` (`id`)
+  INDEX `fk_pratiquer_artiste_idx` (`artiste` ASC) VISIBLE,
+  INDEX `fk_pratiquer_metier_idx` (`metier` ASC) VISIBLE,
+  CONSTRAINT `fk_pratiquer_metier`
+    FOREIGN KEY (`metier`)
+    REFERENCES `cojoden`.`METIER` (`metier_search`),
+  CONSTRAINT `fk_pratiquer_artiste`
+    FOREIGN KEY (`artiste`)
+    REFERENCES `cojoden`.`ARTISTE` (`id`)
 )
 ENGINE = InnoDB;
 
@@ -65,6 +71,13 @@ CREATE TABLE IF NOT EXISTS `cojoden`.`MUSEE` (
   PRIMARY KEY (`museo`),
   CONSTRAINT `fk_musee_ville` FOREIGN KEY (`ville`) REFERENCES `cojoden`.`VILLE` (`id`)
 )
+ENGINE = InnoDB;
+
+DROP TABLE IF EXISTS `cojoden`.`DOMAINE`;
+CREATE TABLE IF NOT EXISTS `cojoden`.`DOMAINE` (
+  `domaine_search` VARCHAR(100) NOT NULL,
+  `domaine` VARCHAR(255) NOT NULL,
+  PRIMARY KEY (`domaine_search`))
 ENGINE = InnoDB;
 
 DROP TABLE IF EXISTS `cojoden`.`MATERIEAUX_TECHNIQUE`;
@@ -107,17 +120,46 @@ CREATE TABLE IF NOT EXISTS `cojoden`.`COMPOSER` (
   `materiaux` INT NOT NULL,
   `complement` VARCHAR(1000) NULL,
   PRIMARY KEY (`oeuvre`, `materiaux`),
-  CONSTRAINT `fk_oemat_oeuvre` FOREIGN KEY (`oeuvre`) REFERENCES `cojoden`.`OEUVRE` (`ref`),
-  CONSTRAINT `fk_oemat_materiaux` FOREIGN KEY (`materiaux`) REFERENCES `cojoden`.`MATERIEAUX_TECHNIQUE` (`id`)
+  INDEX `fk_composer_matiere_idx` (`materiaux` ASC) INVISIBLE,
+  INDEX `fk_composer_oeuvre_idx` (`oeuvre` ASC) INVISIBLE,
+  CONSTRAINT `fk_composer_oeuvre`
+    FOREIGN KEY (`oeuvre`)
+    REFERENCES `cojoden`.`OEUVRE` (`ref`),
+  CONSTRAINT `fk_composer_matiere`
+    FOREIGN KEY (`materiaux`)
+    REFERENCES `cojoden`.`MATERIEAUX_TECHNIQUE` (`id`)
 )
 ENGINE = InnoDB;
 
+DROP TABLE IF EXISTS `cojoden`.`CREER`;
 CREATE TABLE IF NOT EXISTS `cojoden`.`CREER` (
   `oeuvre` VARCHAR(100) NOT NULL,
   `artiste` INT NOT NULL,
   `role` VARCHAR(1000) NULL,
   PRIMARY KEY (`oeuvre`, `artiste`),
-  CONSTRAINT `fk_creer_oeuvre` FOREIGN KEY (`oeuvre`) REFERENCES `cojoden`.`OEUVRE` (`ref`),
-  CONSTRAINT `fk_creer_artiste` FOREIGN KEY (`artiste`) REFERENCES `cojoden`.`ARTISTE` (`id`)
+  INDEX `fk_creer_artiste_idx` (`artiste` ASC) VISIBLE,
+  INDEX `fk_creer_oeuvre_idx` (`oeuvre` ASC) VISIBLE,
+  CONSTRAINT `fk_creer_oeuvre`
+    FOREIGN KEY (`oeuvre`)
+    REFERENCES `cojoden`.`OEUVRE` (`ref`),
+  CONSTRAINT `fk_creer_artiste`
+    FOREIGN KEY (`artiste`)
+    REFERENCES `cojoden`.`ARTISTE` (`id`)
 )
 ENGINE = InnoDB;
+
+DROP TABLE IF EXISTS `cojoden`.`CONCERNER`;
+
+CREATE TABLE IF NOT EXISTS `cojoden`.`CONCERNER` (
+  `domaine` VARCHAR(100) NOT NULL,
+  `oeuvre` VARCHAR(100) NOT NULL,
+  PRIMARY KEY (`domaine`, `oeuvre`),
+  INDEX `fk_concerner_domaine_idx` (`oeuvre` ASC) VISIBLE,
+  INDEX `fk_concerner_domaine_idx` (`domaine` ASC) VISIBLE,
+  CONSTRAINT `fk_concerner_domaine`
+    FOREIGN KEY (`domaine`)
+    REFERENCES `cojoden`.`DOMAINE` (`domaine_search`),
+  CONSTRAINT `fk_concerner_oeuvre`
+    FOREIGN KEY (`oeuvre`)
+    REFERENCES `cojoden`.`OEUVRE` (`ref`))
+ENGINE = InnoDB
