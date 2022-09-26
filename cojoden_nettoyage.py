@@ -352,6 +352,12 @@ def clean_text(input_str, verbose=0):
             "sculpeur"      :"sculpteur",
             "Â"             :"",
             "(genre de)"    :"",
+            "\? (copie d\'après);"  : "",
+            "? (d\'après)"          : "",
+            'attribué Ã )'          :")",
+            'atelier, genre de)'    :")",
+            '?)'                    :")",
+            "d'après)"              :")",
             "   "           :" ",
             "  "            :" ",
         }
