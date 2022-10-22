@@ -942,7 +942,7 @@ if __name__ == '__main__':
     short_name = "cojoden_extraction_main"
     print(f"[{short_name}]------------------------------------------------------ START")
     verbose = 1
-    run_extraction = 1
+    run_extraction = 0
     extraction_mode = ["CSV loading", "DataFrame extraction"]
 
     # Récupère le répertoire du programme
