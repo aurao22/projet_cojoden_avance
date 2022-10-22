@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import string
+import pandas as pd
 
 SPECIAL_CHARS_ARA = 'ÀàÁáÂâÃãÄäÅå&ÆæÇçÐÉÈèéÊêËëÌìÍíÎîÏïÑñÒòÓóÔôÕõÖöœŒØøßÙùÚúÛûÜüÝýŸÿ'
 
@@ -161,6 +162,52 @@ def remove_na_columns(df, max_na=73, excluded_cols=[], verbose=True, inplace=Tru
     print("remove_na_columns, shape start: ",shape_start,"=>",shape_end,"s............................................... END")        
     return df  
 
+
+# %% transpose_df_after_split_extend
+def transpose_df_after_split_extend(df, cols_to_keep, verbose=0):
+    short_name = "transpose_df_after_split_extend"
+    cols = list(df.columns)
+    if verbose > 1:
+        print(f"[{short_name}]\t DEBUG : {cols}")
+    
+    cols_to_keep.append(0)
+    df4 = df[cols_to_keep]
+    for col in cols_to_keep:
+        cols.remove(col)
+    cols_to_keep.remove(0)
+    
+    if verbose > 0:
+        print(f"[{short_name}]\t INFO : {df4.shape} on origin df and {cols} to proceed")
+    
+    for col in cols:
+        cols_to_keep.append(col)
+        dft = df[cols_to_keep]
+        dft = dft[dft[col].notna()]
+        dft = dft.rename(columns={col: 0})
+        df4 = pd.concat([df4, dft], axis=0)
+        if verbose > 1:
+            print(f"[{short_name}]\t DEBUG : {df4.shape} after add {col}")    
+        cols_to_keep.remove(col)
+
+    if verbose > 0:
+        print(f"[{short_name}]\t INFO : {df4.shape} at the end and {df4.columns}")
+    df4 = df4.sort_values(cols_to_keep)
+    return df4
+
+# %% _convert_to_float
+def _convert_to_float(str_):
+    res = 0
+    to_proc = str_
+    try:
+        if isinstance(to_proc, str):
+            to_proc = to_proc.replace(",", ".")
+            to_proc = to_proc.replace("..", ".")
+
+        res = float(to_proc)
+    except:
+        res = 0
+
+    return res
 
 # ----------------------------------------------------------------------------------
 #                        GRAPHIQUES

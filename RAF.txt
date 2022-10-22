@@ -5,8 +5,8 @@ Corriger le MCD :
 	
 Extraction RAF : 
 	- Extraction COMPOSER 				=> DONE
-	- Extraction DOMAINE
-	- Extraction CONCERNE
+	- Extraction DOMAINE 				=> DONE
+	- Extraction CONCERNE 				=> DONE
 	- Insertion en BDD
 	- Recherche sur plusieurs critères
 	- Recherche sur distance

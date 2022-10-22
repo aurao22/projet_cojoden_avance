@@ -4,7 +4,7 @@ from os.path import join
 import pandas as pd
 import numpy as np
 import re
-from cojoden_functions import convert_df_string_to_search_string
+from cojoden_functions import convert_df_string_to_search_string, transpose_df_after_split_extend
 import cojoden_nettoyage as cojonet
 
 
@@ -53,60 +53,6 @@ def extract_villes(df, dest_path, dest_file_name='villes_departement_region_pays
     print(f"[{short_name}]\t INFO : {df_cities.shape} données sauvegardées in ------> {join(dest_path,dest_file_name)}")
     return df_cities
 
-# %% extract_data
-def extract_data(df, src_col_name, dest_col_name, clean_function, separator=";", dest_path="", dest_file_name=None, verbose=0):
-    short_name = "extract_data"
-    df_1 = df.copy()
-    if verbose > 0:
-        print(f"[{short_name}]\t INFO : {df_1.shape} on origin df")
-    df_1 = df_1[df_1[src_col_name].notna()]
-    df_1 = df_1[[src_col_name]]
-    if verbose > 1:
-        print(f"[{short_name}]\t DEBUG : {df_1.shape} on origin not null")
-    df_1 = df_1[df_1["auteur"].str.contains(separator)]
-    if verbose > 1:
-        print(f"[{short_name}]\t DEBUG : {df_1.shape} with parenthesis")
-    
-    df_1 = df_1["auteur"].str.split(separator, expand=True)
-    if verbose > 1:
-        print(f"[{short_name}]\t DEBUG : {df_1.shape} after split")
-    cols = list(df_1.columns)
-    df_2 = None
-    for col in cols:
-        df_1.loc[df_1[col].notna(),col]=df_1.loc[df_1[col].notna(),col].apply(lambda x: clean_function(input_str=x, verbose=verbose-1))
-        if df_2 is None:
-            df_2 = df_1[df_1[[0]].notna()]
-            df_2= df_2[[0]]
-        else:
-            df_tp = df_1[df_1[col].notna()]
-            df_tp = df_tp[[col]]
-            df_tp = df_tp.rename(columns={col: 0})
-            df_2 = pd.concat([df_2, df_tp], axis=0)
-            if verbose > 1:
-                print(f"[{short_name}]\t DEBUG : {df_2.shape} after add {col}")
-    if verbose > 0:
-        print(f"[{short_name}]\t INFO : {df_2.shape} after add columns in rows")
-    
-    df_3 = df_2.copy()
-    df_3["search"] = df_2[0]
-
-    # Ajout de la colonne search et suppression des doublons
-    df5 = convert_df_string_to_search_string(df_3, "search", stop_word_to_remove=[])
-    df5 = df5[df5[0].notna()]
-    df5 = df5.drop_duplicates(subset=["search"])
-    df5 = df5.sort_values(by=['search'])
-    df5 = df5.reset_index()
-    df5 = df5[["search", 0]]
-    df5 = df5.rename(columns={0:dest_col_name})
-    if verbose > 0:
-        print(f"[{short_name}]\t INFO : {df5.shape} after drop duplicates")
-
-    if dest_file_name is not None:
-        df5.to_csv(join(dest_path,dest_file_name), index=False)
-        if verbose>0:
-            print(f"[{short_name}]\t INFO : {df5.shape} données sauvegardées in ------> {join(dest_path,dest_file_name)}")
-
-    return df5
 
 # %% extract_musees
 def extract_musees(df, df_villes, dest_path, dest_file_name='musees.csv', verbose=0):
@@ -182,7 +128,7 @@ def extract_artistes(df, dest_path, dest_file_name='artistes.csv', verbose=0):
         print(f"[{short_name}]\t INFO : {df_aut1.shape} without na and duplicates")
     
     # Suppression des termes spécifiques rencontrés lors de l'exploration des données
-    df_aut1.loc[df_aut1["auteur"].notna(),'auteur'] =  df_aut1.loc[df_aut1["auteur"].notna(),'auteur'].apply(lambda x: clean_artiste_name(input_artiste=x, verbose=verbose-1))    
+    df_aut1.loc[df_aut1["auteur"].notna(),'auteur'] =  df_aut1.loc[df_aut1["auteur"].notna(),'auteur'].apply(lambda x: _clean_artiste_name(input_artiste=x, verbose=verbose-1))    
     df_aut1.loc[(df_aut1['auteur'].notna()) & (df_aut1['auteur'])=='', 'auteur'] = np.nan
     df_aut1 = df_aut1[df_aut1['auteur'].notna()]
     df_aut1 = df_aut1.drop_duplicates()
@@ -483,7 +429,7 @@ def extract_creation_oeuvres(df, df_artistes, dest_path, dest_file_name='creatio
     if verbose > 0:
         print(f"[{short_name}]\t INFO : {df1.shape} on origin df")
     
-    df1.loc[df1["auteur"].notna(),'auteur_list'] =  df1.loc[df1["auteur"].notna(),'auteur'].apply(lambda x: clean_artiste(input_artiste=x, clean_dit_at_begin=True, join=True, verbose=verbose-1))
+    df1.loc[df1["auteur"].notna(),'auteur_list'] =  df1.loc[df1["auteur"].notna(),'auteur'].apply(lambda x: _clean_artiste(input_artiste=x, clean_dit_at_begin=True, join=True, verbose=verbose-1))
     df1['auteur_list2'] = df1['auteur_list']
     df1.loc[df1["auteur"].notna(),'auteur_list']
     df2 = df1.loc[df1['auteur_list2'].notna(), 'auteur_list2'].str.split(r";", expand=True)
@@ -515,7 +461,7 @@ def extract_creation_oeuvres(df, df_artistes, dest_path, dest_file_name='creatio
         print(f"[{short_name}]\t INFO : {df4.shape} with artistes")
 
 
-    df4.loc[(df4['auteur'].notna()) &(df4['auteur'].str.contains("(", regex=False)), "metier"] = df4.loc[(df4['auteur'].notna()) &(df4['auteur'].str.contains("(", regex=False)), ["auteur", 0]].apply(lambda x: extract_metier_for_artiste_and_oeuvre(str_line=x["auteur"], auteur_name=x[0], verbose=verbose-1), axis=1)
+    df4.loc[(df4['auteur'].notna()) &(df4['auteur'].str.contains("(", regex=False)), "metier"] = df4.loc[(df4['auteur'].notna()) &(df4['auteur'].str.contains("(", regex=False)), ["auteur", 0]].apply(lambda x: _extract_metier_for_artiste_and_oeuvre(str_line=x["auteur"], auteur_name=x[0], verbose=verbose-1), axis=1)
 
     if verbose > 0:
         print(f"[{short_name}]\t INFO : {df4.shape} with metier by artiste")
@@ -557,164 +503,19 @@ def extract_creation_oeuvres(df, df_artistes, dest_path, dest_file_name='creatio
     
     return df_creation
 
-# %% extract_oeuvre_materiaux
-def extract_oeuvre_materiaux_old(df, dest_path, dest_file_name, keep_cols, col_name, verbose=0):
-    short_name = "extract_oeuvre_compose_mat"
-    df1 = df[['ref','materiaux_technique']]
-    if verbose > 0:
-        print(f"[{short_name}]\t INFO : {df1.shape} on origin df")
-    
-    df1 = df1[df1['materiaux_technique'].notna()]
-    df1 = df1.sort_values('materiaux_technique')
-    df1 = df1.drop_duplicates()
-    df1["mat_src"] = df1['materiaux_technique']
-    if verbose > 0:
-        print(f"[{short_name}]\t INFO : {df1.shape} without na and duplicates")
 
-    df2 = df1.copy()
+# %% extract_materiaux_and_composer
+def extract_materiaux_and_composer(df, dest_path, dest_file_name='materiaux_techniques.csv', verbose=0):
+    short_name = "extract_materiaux_and_composer"        
 
-    # Séparation des matériaux
-    for sep in [',', ';', '/', '.', ':']:
-        # Il faut construire une DF avec les métriaux
-        df3 = df2.loc[df2['materiaux_technique'].notna(), 'materiaux_technique'].str.split(sep, expand=True)
-        # On remet la référence de l'oeuvre, pour ça on merge les df sur l'index.
-        df4 = pd.merge(df2,df3, left_index=True, right_index=True)
-        df5 = df4.drop(columns=['materiaux_technique'])
-        df5 = transpose_df_after_split_extend(df5, cols_to_keep=["ref", 'mat_src'] , verbose=verbose-1)
-        df5 = df5.rename(columns={0:'materiaux_technique'})
-        df2 = df5[["ref", 'mat_src', 'materiaux_technique']]
-        df2 = df2.drop_duplicates()
-
-    # nettoyer les chaines
-    df2.loc[df2["materiaux_technique"].notna(),"materiaux_technique"] = df2.loc[df2["materiaux_technique"].notna(),"materiaux_technique"].apply(lambda x:cojonet.clean_text(x, verbose=verbose-1))
-    df2 = df2.drop_duplicates()
-    
-    # Création du nom pour les recherches
-    df_composer = df2.copy()
-    df_composer["mat_search"] = df_composer['materiaux_technique']
-    df_composer = convert_df_string_to_search_string(input_df=df_composer, col_name="mat_search")
-    df_composer['materiaux_technique'] = df_composer['materiaux_technique'].str.lower()
-
-    if verbose > 0:
-        print(f"[{short_name}]\t INFO : {df_composer.shape}")
-    df_composer = df_composer.sort_values(["mat_search"])
-    df_composer = df_composer.drop_duplicates(['ref','mat_search'], keep='first')
-    if verbose > 0:
-        print(f"[{short_name}]\t INFO : {df_composer.shape}")
-    
-    df_composer = df_composer[(df_composer["mat_search"].notna())&(df_composer["mat_search"]!="")&(df_composer["mat_search"].str.len()>1)]
-
-    # Traitement spécifique aux matériaux
-    df_fin = df_composer[["mat_search", "materiaux_technique"]]
-    df_fin = df_fin.drop_duplicates(["mat_search"])
-    df_fin = df_fin.reset_index()
-    df_fin = df_fin.drop(columns=['index'])
-    df_fin = df_fin.reset_index()
-    df_fin["index"] = df_fin["index"] + 1
-    df_fin = df_fin.rename(columns={"index":"id"})
-    
-    df_fin = df_fin.set_index("id")
-    df_fin.to_csv(join(dest_path,dest_file_name), index=True)
-    print(f"[{short_name}]\t INFO : {df_fin.shape} données sauvegardées in ------> {join(dest_path,dest_file_name)}")
-
-    # Ajout de l'identifiant du matériaux dans la table compose
-    df_fin = df_fin.reset_index()
-    df_composer = df_composer.merge(df_fin[["id","mat_search"]], left_on='mat_search', right_on='mat_search', how='left')
-    dest_file_name = dest_file_name.replace(".csv", "_compose.csv")
-    df_composer = df_composer[['ref', 'id']]
-    df_composer = df_composer.rename(columns={"ref":"oeuvre", "id":"materiaux"})
-    df_composer = df_composer.drop_duplicates()
-    df_composer = df_composer.sort_values(["oeuvre", "materiaux"])
-    df_composer.to_csv(join(dest_path,dest_file_name), index=False)
-    print(f"[{short_name}]\t INFO : {df_composer.shape} données sauvegardées in ------> {join(dest_path,dest_file_name)}")
-
-    return df_fin, df_composer
-
-def extract_oeuvre_materiaux_old2(df, dest_path, dest_file_name='materiaux.csv', verbose=0):
-    short_name = "extract_oeuvre_compose_mat"
-    df1 = df[['ref','materiaux_technique']]
-    if verbose > 0:
-        print(f"[{short_name}]\t INFO : {df1.shape} on origin df")
-    
-    df1 = df1[df1['materiaux_technique'].notna()]
-    df1 = df1.sort_values('materiaux_technique')
-    df1 = df1.drop_duplicates()
-    df1["mat_src"] = df1['materiaux_technique']
-    if verbose > 0:
-        print(f"[{short_name}]\t INFO : {df1.shape} without na and duplicates")
-
-    df2 = df1.copy()
-
-    # Séparation des matériaux
-    for sep in [',', ';', '/', '.', ':']:
-        # Il faut construire une DF avec les métriaux
-        df3 = df2.loc[df2['materiaux_technique'].notna(), 'materiaux_technique'].str.split(sep, expand=True)
-        # On remet la référence de l'oeuvre, pour ça on merge les df sur l'index.
-        df4 = pd.merge(df2,df3, left_index=True, right_index=True)
-        df5 = df4.drop(columns=['materiaux_technique'])
-        df5 = transpose_df_after_split_extend(df5, cols_to_keep=["ref", 'mat_src'] , verbose=verbose-1)
-        df5 = df5.rename(columns={0:'materiaux_technique'})
-        df2 = df5[["ref", 'mat_src', 'materiaux_technique']]
-        df2 = df2.drop_duplicates()
-
-    # nettoyer les chaines
-    df2.loc[df2["materiaux_technique"].notna(),"materiaux_technique"] = df2.loc[df2["materiaux_technique"].notna(),"materiaux_technique"].apply(lambda x:cojonet.clean_text(x, verbose=verbose-1))
-    df2 = df2.drop_duplicates()
-    
-    # Création du nom pour les recherches
-    df_composer = df2.copy()
-    df_composer["mat_search"] = df_composer['materiaux_technique']
-    df_composer = convert_df_string_to_search_string(input_df=df_composer, col_name="mat_search")
-    df_composer['materiaux_technique'] = df_composer['materiaux_technique'].str.lower()
-
-    if verbose > 0:
-        print(f"[{short_name}]\t INFO : {df_composer.shape}")
-    df_composer = df_composer.sort_values(["mat_search"])
-    df_composer = df_composer.drop_duplicates(['ref','mat_search'], keep='first')
-    if verbose > 0:
-        print(f"[{short_name}]\t INFO : {df_composer.shape}")
-    
-    df_composer = df_composer[(df_composer["mat_search"].notna())&(df_composer["mat_search"]!="")&(df_composer["mat_search"].str.len()>1)]
-
-    # Traitement spécifique aux matériaux
-    df_fin = df_composer[["mat_search", "materiaux_technique"]]
-    df_fin = df_fin.drop_duplicates(["mat_search"])
-    df_fin = df_fin.reset_index()
-    df_fin = df_fin.drop(columns=['index'])
-    df_fin = df_fin.reset_index()
-    df_fin["index"] = df_fin["index"] + 1
-    df_fin = df_fin.rename(columns={"index":"id"})
-    
-    df_fin = df_fin.set_index("id")
-    df_fin.to_csv(join(dest_path,dest_file_name), index=True)
-    print(f"[{short_name}]\t INFO : {df_fin.shape} données sauvegardées in ------> {join(dest_path,dest_file_name)}")
-
-    # Ajout de l'identifiant du matériaux dans la table compose
-    df_fin = df_fin.reset_index()
-    df_composer = df_composer.merge(df_fin[["id","mat_search"]], left_on='mat_search', right_on='mat_search', how='left')
-    dest_file_name = dest_file_name.replace(".csv", "_compose.csv")
-    df_composer = df_composer[['ref', 'id']]
-    df_composer = df_composer.rename(columns={"ref":"oeuvre", "id":"materiaux"})
-    df_composer = df_composer.drop_duplicates()
-    df_composer = df_composer.sort_values(["oeuvre", "materiaux"])
-    df_composer.to_csv(join(dest_path,dest_file_name), index=False)
-    print(f"[{short_name}]\t INFO : {df_composer.shape} données sauvegardées in ------> {join(dest_path,dest_file_name)}")
-
-    return df_fin, df_composer
-
-
-# %% extract_oeuvre_materiaux
-def extract_oeuvre_materiaux(df, dest_path, dest_file_name, keep_cols, col_name, verbose=0):
-    short_name = "extract_oeuvre_materiaux"
-    
-    df_fin, df_composer = extract_sub(df=df, dest_path=dest_path, dest_file_name=dest_file_name, keep_cols=['ref','materiaux_technique'], col_name='materiaux_technique', verbose=verbose)
+    df_materiaux, df_composer = _extract_sub(df=df, keep_cols=['ref','materiaux_technique'], col_name='materiaux_technique', verbose=verbose)
         
     # Création du nom pour les recherches
     df_composer = df_composer.rename(columns={'materiaux_technique_search':'mat_search'})
-    df_fin = df_fin.rename(columns={'materiaux_technique_search':'mat_search'})
-    df_fin = df_fin.set_index("id")
-    df_fin.to_csv(join(dest_path,dest_file_name), index=True)
-    print(f"[{short_name}]\t INFO : {df_fin.shape} données sauvegardées in ------> {join(dest_path,dest_file_name)}")
+    df_materiaux = df_materiaux.rename(columns={'materiaux_technique_search':'mat_search'})
+    df_materiaux = df_materiaux.set_index("id")
+    df_materiaux.to_csv(join(dest_path,dest_file_name), index=True)
+    print(f"[{short_name}]\t INFO : {df_materiaux.shape} données sauvegardées in ------> {join(dest_path,dest_file_name)}")
 
     # Ajout de l'identifiant du matériaux dans la table compose
     dest_file_name = dest_file_name.replace(".csv", "_compose.csv")
@@ -725,10 +526,103 @@ def extract_oeuvre_materiaux(df, dest_path, dest_file_name, keep_cols, col_name,
     df_composer.to_csv(join(dest_path,dest_file_name), index=False)
     print(f"[{short_name}]\t INFO : {df_composer.shape} données sauvegardées in ------> {join(dest_path,dest_file_name)}")
 
-    return df_fin, df_composer
+    return df_materiaux, df_composer
 
-# %% extract_sub
-def extract_sub(df, dest_path, dest_file_name, keep_cols, col_name, verbose=0):
+# %% extract_materiaux_and_composer
+def extract_domaines_and_concerner(df, dest_path, dest_file_name='domaines.csv', verbose=0):
+    short_name = "extract_domaines_and_concerner"
+    df_domaine, df_concerner = _extract_sub(df=df, keep_cols=['ref','domaine'], col_name='domaine', verbose=verbose)
+        
+    # Création du nom pour les recherches
+    df_concerner = df_concerner.rename(columns={'domaine_search':'dom_search'})
+    df_domaine = df_domaine.rename(columns={'domaine_search':'dom_search'})
+    df_domaine = df_domaine.set_index("id")
+    df_domaine.to_csv(join(dest_path,dest_file_name), index=True)
+    print(f"[{short_name}]\t INFO : {df_domaine.shape} données sauvegardées in ------> {join(dest_path,dest_file_name)}")
+
+    # Ajout de l'identifiant du matériaux dans la table compose
+    dest_file_name = dest_file_name.replace(".csv", "_concerner.csv")
+    df_concerner = df_concerner[['ref', 'id']]
+    df_concerner = df_concerner.rename(columns={"ref":"oeuvre", "id":"domaine"})
+    df_concerner = df_concerner.drop_duplicates()
+    df_concerner = df_concerner.sort_values(["oeuvre", "domaine"])
+    df_concerner.to_csv(join(dest_path,dest_file_name), index=False)
+    print(f"[{short_name}]\t INFO : {df_concerner.shape} données sauvegardées in ------> {join(dest_path,dest_file_name)}")
+
+    return df_domaine, df_concerner
+
+# %% extract_metiers
+def extract_metiers(df, src_col_name, dest_col_name, clean_function, separator=";", dest_path="", dest_file_name=None, verbose=0):
+    short_name = "extract_metiers"
+    df_1 = df.copy()
+    if verbose > 0:
+        print(f"[{short_name}]\t INFO : {df_1.shape} on origin df")
+    df_1 = df_1[df_1[src_col_name].notna()]
+    df_1 = df_1[[src_col_name]]
+    if verbose > 1:
+        print(f"[{short_name}]\t DEBUG : {df_1.shape} on origin not null")
+    df_1 = df_1[df_1["auteur"].str.contains(separator)]
+    if verbose > 1:
+        print(f"[{short_name}]\t DEBUG : {df_1.shape} with parenthesis")
+    
+    df_1 = df_1["auteur"].str.split(separator, expand=True)
+    if verbose > 1:
+        print(f"[{short_name}]\t DEBUG : {df_1.shape} after split")
+    cols = list(df_1.columns)
+    df_2 = None
+    for col in cols:
+        df_1.loc[df_1[col].notna(),col]=df_1.loc[df_1[col].notna(),col].apply(lambda x: clean_function(input_str=x, verbose=verbose-1))
+        if df_2 is None:
+            df_2 = df_1[df_1[[0]].notna()]
+            df_2= df_2[[0]]
+        else:
+            df_tp = df_1[df_1[col].notna()]
+            df_tp = df_tp[[col]]
+            df_tp = df_tp.rename(columns={col: 0})
+            df_2 = pd.concat([df_2, df_tp], axis=0)
+            if verbose > 1:
+                print(f"[{short_name}]\t DEBUG : {df_2.shape} after add {col}")
+    if verbose > 0:
+        print(f"[{short_name}]\t INFO : {df_2.shape} after add columns in rows")
+    
+    df_3 = df_2.copy()
+    df_3["search"] = df_2[0]
+
+    # Ajout de la colonne search et suppression des doublons
+    df5 = convert_df_string_to_search_string(df_3, "search", stop_word_to_remove=[])
+    df5 = df5[df5[0].notna()]
+    df5 = df5.drop_duplicates(subset=["search"])
+    df5 = df5.sort_values(by=['search'])
+    df5 = df5.reset_index()
+    df5 = df5[["search", 0]]
+    df5 = df5.rename(columns={0:dest_col_name})
+    if verbose > 0:
+        print(f"[{short_name}]\t INFO : {df5.shape} after drop duplicates")
+
+    if dest_file_name is not None:
+        df5.to_csv(join(dest_path,dest_file_name), index=False)
+        if verbose>0:
+            print(f"[{short_name}]\t INFO : {df5.shape} données sauvegardées in ------> {join(dest_path,dest_file_name)}")
+
+    return df5
+
+# ----------------------------------------------------------------------------------
+# PRIVATE FUNCTIONS
+# ----------------------------------------------------------------------------------
+# %% _extract_sub
+def _extract_sub(df, keep_cols, col_name, verbose=0):
+    """Extract data from 2 tables, the reference table where an ID is generate and a depend table.
+    The ID is update in the depends table.
+
+    Args:
+        df (DataFrame): The source dataframe
+        keep_cols (list(str)): The column's name to keep
+        col_name (str): The column's name to split and extract
+        verbose (int, optional): Log level. Defaults to 0.
+
+    Returns:
+        (DataFrame, DataFrame): The reference dataframe, The depend DataFrame 
+    """
     short_name = "extract_sub"
     df1 = df[keep_cols]
     if verbose > 0:
@@ -753,7 +647,8 @@ def extract_sub(df, dest_path, dest_file_name, keep_cols, col_name, verbose=0):
         # On remet la référence de l'oeuvre, pour ça on merge les df sur l'index.
         df4 = pd.merge(df2,df3, left_index=True, right_index=True)
         df5 = df4.drop(columns=[col_name])
-        kp = keep_cols.remove(col_name)
+        kp = keep_cols.copy()
+        kp.remove(col_name)
         df5 = transpose_df_after_split_extend(df5, cols_to_keep=kp , verbose=verbose-1)
         df5 = df5.rename(columns={0:col_name})
         df2 = df5[keep_cols]
@@ -780,27 +675,27 @@ def extract_sub(df, dest_path, dest_file_name, keep_cols, col_name, verbose=0):
     df_composer = df_composer[(df_composer[col_name+"_search"].notna())&(df_composer[col_name+"_search"]!="")&(df_composer[col_name+"_search"].str.len()>1)]
 
     # Traitement spécifique aux matériaux
-    df_fin = df_composer[[col_name+"_search", col_name]]
-    df_fin = df_fin.drop_duplicates([col_name+"_search"])
-    df_fin = df_fin.reset_index()
-    df_fin = df_fin.drop(columns=['index'])
-    df_fin = df_fin.reset_index()
-    df_fin["index"] = df_fin["index"] + 1
-    df_fin = df_fin.rename(columns={"index":"id"})
+    df_table_ref = df_composer[[col_name+"_search", col_name]]
+    df_table_ref = df_table_ref.drop_duplicates([col_name+"_search"])
+    df_table_ref = df_table_ref.reset_index()
+    df_table_ref = df_table_ref.drop(columns=['index'])
+    df_table_ref = df_table_ref.reset_index()
+    df_table_ref["index"] = df_table_ref["index"] + 1
+    df_table_ref = df_table_ref.rename(columns={"index":"id"})
     
-    df_fin = df_fin.set_index("id")
+    df_table_ref = df_table_ref.set_index("id")
     
     # Ajout de l'identifiant du matériaux dans la table compose
-    df_fin = df_fin.reset_index()
-    df_composer = df_composer.merge(df_fin[["id",col_name+"_search"]], left_on=col_name+'_search', right_on=col_name+'_search', how='left')
+    df_table_ref = df_table_ref.reset_index()
+    df_composer = df_composer.merge(df_table_ref[["id",col_name+"_search"]], left_on=col_name+'_search', right_on=col_name+'_search', how='left')
     
-    return df_fin, df_composer
+    return df_table_ref, df_composer
 
 # ----------------------------------------------------------------------------------
 # PRIVATE FUNCTIONS - Text generation to fill na values
 # ----------------------------------------------------------------------------------
-# %% extract_metier_for_artiste_and_oeuvre
-def extract_metier_for_artiste_and_oeuvre(str_line, auteur_name,verbose=0):
+# %% _extract_metier_for_artiste_and_oeuvre
+def _extract_metier_for_artiste_and_oeuvre(str_line, auteur_name,verbose=0):
     res = np.nan
     if auteur_name is not None and len(auteur_name)>0:
         str_rest = str_line.split(auteur_name) 
@@ -814,9 +709,9 @@ def extract_metier_for_artiste_and_oeuvre(str_line, auteur_name,verbose=0):
                     return s2
     return res
 
-# %% clean_artiste_name
-def clean_artiste_name(input_artiste, to_replace_add={}, verbose=0):
-    short_name = "clean_artiste_name"
+# %% _clean_artiste_name
+def _clean_artiste_name(input_artiste, to_replace_add={}, verbose=0):
+    short_name = "_clean_artiste_name"
     res = input_artiste
     
     # Suppression des termes spécifiques rencontrés lors de l'exploration des données
@@ -847,9 +742,9 @@ def clean_artiste_name(input_artiste, to_replace_add={}, verbose=0):
         print(f"[{short_name}]\t DEBUG : {input_artiste} clean to became {res}")
     return res
 
-# %% clean_artiste
-def clean_artiste(input_artiste, clean_dit_at_begin=True, join=True, verbose=0):
-    short_name = "clean_artiste"
+# %% _clean_artiste
+def _clean_artiste(input_artiste, clean_dit_at_begin=True, join=True, verbose=0):
+    short_name = "_clean_artiste"
     res = []
     # Suppression des termes spécifiques rencontrés lors de l'exploration des données
     to_replace = {}
@@ -872,7 +767,7 @@ def clean_artiste(input_artiste, clean_dit_at_begin=True, join=True, verbose=0):
         to_replace['dit), GUERCINO']=""
         to_replace['s))']=""
         
-    proc_str = clean_artiste_name(input_artiste, to_replace_add=to_replace, verbose=verbose-1)
+    proc_str = _clean_artiste_name(input_artiste, to_replace_add=to_replace, verbose=verbose-1)
     
     if verbose > 1:
         print(f"[{short_name}]\t DEBUG : {input_artiste} clean to became {proc_str}")
@@ -930,53 +825,6 @@ def clean_metier(input_str, verbose=0):
                     break
         
     return res
-
-# %% transpose_df_after_split_extend
-def transpose_df_after_split_extend(df, cols_to_keep, verbose=0):
-    short_name = "transpose_df_after_split_extend"
-    cols = list(df.columns)
-    if verbose > 1:
-        print(f"[{short_name}]\t DEBUG : {cols}")
-    
-    cols_to_keep.append(0)
-    df4 = df[cols_to_keep]
-    for col in cols_to_keep:
-        cols.remove(col)
-    cols_to_keep.remove(0)
-    
-    if verbose > 0:
-        print(f"[{short_name}]\t INFO : {df4.shape} on origin df and {cols} to proceed")
-    
-    for col in cols:
-        cols_to_keep.append(col)
-        dft = df[cols_to_keep]
-        dft = dft[dft[col].notna()]
-        dft = dft.rename(columns={col: 0})
-        df4 = pd.concat([df4, dft], axis=0)
-        if verbose > 1:
-            print(f"[{short_name}]\t DEBUG : {df4.shape} after add {col}")    
-        cols_to_keep.remove(col)
-
-    if verbose > 0:
-        print(f"[{short_name}]\t INFO : {df4.shape} at the end and {df4.columns}")
-    df4 = df4.sort_values(cols_to_keep)
-    return df4
-# %% _convert_to_float
-def _convert_to_float(str_):
-    res = 0
-    to_proc = str_
-    try:
-        if isinstance(to_proc, str):
-            to_proc = to_proc.replace(",", ".")
-            to_proc = to_proc.replace("..", ".")
-
-        res = float(to_proc)
-    except:
-        res = 0
-
-    return res
-
-
 
 
 # %% _add_missing_artists
@@ -1041,7 +889,6 @@ def _add_missing_artists(df, verbose=0):
 # ----------------------------------------------------------------------------------
 
 
-
 # %% _test_clan_artiste
 def _test_clan_artiste(verbose=1):
     auteurs_to_test = [
@@ -1052,10 +899,10 @@ def _test_clan_artiste(verbose=1):
         'DUTHOIT Aimé;DUTHOIT Louis',
     ]
     for t in auteurs_to_test:
-        print(clean_artiste(t, verbose=verbose))
+        print(_clean_artiste(t, verbose=verbose))
 
-# %% _test_extract_metier_for_artiste_and_oeuvre
-def _test_extract_metier_for_artiste_and_oeuvre(verbose=1):
+# %% _test__extract_metier_for_artiste_and_oeuvre
+def _test__extract_metier_for_artiste_and_oeuvre(verbose=1):
     to_test = {
         "SAINT-GERMAIN Marguerite (De) (céramiste)":"SAINT-GERMAIN Marguerite",
         "LAMOISSE Eugène (dessinateur)":"LAMOISSE Eugène",
@@ -1065,7 +912,7 @@ def _test_extract_metier_for_artiste_and_oeuvre(verbose=1):
     }
 
     for str_line, auteur_name in to_test.items():
-        print(extract_metier_for_artiste_and_oeuvre(str_line, auteur_name, verbose=verbose))
+        print(_extract_metier_for_artiste_and_oeuvre(str_line, auteur_name, verbose=verbose))
 
 # %% _test_clean_metier
 def _test_clean_metier(verbose=1):
@@ -1084,7 +931,7 @@ def _test_clean_metier(verbose=1):
 # %% test
 def test(verbose=1):
     _test_clan_artiste(verbose=verbose)
-    _test_extract_metier_for_artiste_and_oeuvre(verbose=verbose)
+    _test__extract_metier_for_artiste_and_oeuvre(verbose=verbose)
     _test_clean_metier(verbose=verbose)
 
 # ----------------------------------------------------------------------------------
@@ -1092,41 +939,74 @@ def test(verbose=1):
 # ----------------------------------------------------------------------------------
 # %% main
 if __name__ == '__main__':
+    short_name = "cojoden_extraction_main"
+    print(f"[{short_name}]------------------------------------------------------ START")
     verbose = 1
-    run_extraction = 0
+    run_extraction = 1
+    extraction_mode = ["CSV loading", "DataFrame extraction"]
 
     # Récupère le répertoire du programme
     file_path = getcwd() + "\\"
     if "PROJETS" not in file_path:
         file_path = join(file_path, "PROJETS")
     if "projet_joconde" not in file_path:
-        file_path = join(file_path, "projet_joconde")
+        file_path = join(file_path, "projet_cojoden_avance")
     
     data_set_path = join(file_path , "dataset\\")
-    data_set_file_name = "base-joconde-extrait.csv"
+    data_set_file_name = "cojoden_origine_clean.csv"
 
-    print(f"Current execution path : {file_path}")
-    print(f"Dataset path : {data_set_path}")
-
-    # Chargement et nettoyage général
-    df_origin = load_data(data_set_path=data_set_path,data_set_file_name=data_set_file_name, verbose=verbose)
-    df_encode = proceed_encoding(df_origin, verbose=verbose)
-    df_clean = proceed_duplicated(df_encode, verbose=verbose)
-    df_clean_na = proceed_na_values(df_clean, verbose=verbose)
-
-    if verbose > 1:
-        figure, ax = color_graph_background(1,1)
-        sns.heatmap(df_clean_na.isnull(), yticklabels=False,cbar=False, cmap='viridis')
-        plt.xticks(rotation=45, ha="right", fontsize=10)
-        plt.title("NA dans la DF après traitement.")
-        figure.set_size_inches(18, 5, forward=True)
-        plt.show()
-
-    # extraction des données
-    if run_extraction > 0:
-        df_villes = extract_villes(df=df_clean_na, dest_path=data_set_path, dest_file_name='villes_departement_region_pays.csv',verbose=verbose)
-        df_musees = extract_musees(df=df_clean_na, dest_path=data_set_path, dest_file_name='musees.csv', verbose=verbose)
-        df_artistes = extract_artistes(df=df_clean_na, dest_path=data_set_path, dest_file_name='artistes.csv', verbose=verbose)
-        df_materiaux = extract_materiaux_technique(df=df_clean_na, dest_path=data_set_path, dest_file_name='materiaux_techniques.csv', verbose=verbose)
+    if verbose>0:
+        print(f"[{short_name}]\tINFO: Current execution path : {file_path}")
+        print(f"[{short_name}]\tINFO: Dataset path           : {data_set_path}")
+        print(f"[{short_name}]\tINFO: Global Extraction Mode : {extraction_mode[run_extraction]}")
     
+    # ---------------------
+    if run_extraction > 0:
+        # Chargement et nettoyage général
+        data_set_file_path = join(data_set_path,data_set_file_name)
+        df_origin = pd.read_csv(data_set_file_path, low_memory=False)
+        if verbose>0:
+            print(f"[{short_name}]\tINFO: Dataset filet path     : {data_set_file_path}")
+            print(f"[{short_name}]\tINFO: {df_origin.shape}")
+            print(f"[{short_name}]\tINFO: {df_origin.info()}")
+        
+        # Extraction des données
+        df_metiers= extract_metiers(df=df_origin, src_col_name="auteur", dest_col_name="metier", clean_function=clean_metier, separator="\)", dest_path=data_set_path, dest_file_name='metiers_uniques.csv', verbose=verbose)
+        df_villes = extract_villes(df=df_origin, dest_path=data_set_path, dest_file_name='villes_departement_region_pays.csv',verbose=verbose)
+        df_musees = extract_musees(df=df_origin, df_villes=df_villes, dest_path=data_set_path, dest_file_name='musees.csv', verbose=verbose)
+        df_artistes = extract_artistes(df=df_origin, dest_path=data_set_path, dest_file_name='artistes.csv', verbose=verbose)
+        df_oeuvres = extract_oeuvres(df=df_origin, df_villes=df_villes, dest_path=data_set_path, dest_file_name='oeuvres.csv', verbose=0)
+        df_creation_oeuvres = extract_creation_oeuvres(df=df_origin, df_artistes=df_artistes, dest_path=data_set_path, dest_file_name='creation_oeuvres.csv', verbose=verbose)
+        df_materiaux, df_compose = extract_materiaux_and_composer(df=df_origin, dest_path=data_set_path, dest_file_name='materiaux_techniques.csv', verbose=verbose)
+        df_domaine, df_concerner = extract_domaines_and_concerner(df=df_origin, dest_path=data_set_path, dest_file_name='domaines.csv', verbose=verbose)
+    else:
+        # Chargment des données
+        df_metiers = pd.read_csv(join(data_set_path,'cojoden_metiers_uniques.csv'))
+        df_villes = pd.read_csv(join(data_set_path,'cojoden_villes_departement_region_pays.csv'))
+        df_villes = df_villes.set_index("id")
+        df_musees = pd.read_csv(join(data_set_path,'cojoden_musees.csv'))
+        df_artistes = pd.read_csv(join(data_set_path,'cojoden_artistes.csv'))
+        df_artistes = df_artistes.set_index("id")
+        df_oeuvres = pd.read_csv(join(data_set_path,'cojoden_oeuvres.csv'), low_memory=False)
+        df_creation_oeuvres = pd.read_csv(join(data_set_path,'cojoden_creation_oeuvres.csv'), low_memory=False)
+        df_materiaux = pd.read_csv(join(data_set_path,'cojoden_materiaux_techniques.csv'))
+        df_materiaux = df_materiaux.set_index("id")
+        df_compose = pd.read_csv(join(data_set_path,'cojoden_materiaux_techniques_compose.csv'))
+        df_domaine = pd.read_csv(join(data_set_path,'cojoden_domaines.csv'))
+        df_domaine = df_domaine.set_index("id")
+        df_concerner = pd.read_csv(join(data_set_path,'cojoden_domaines_concerner.csv'))
+
+    if verbose>0:
+        print(f"[{short_name}]  INFO: Metiers   {df_metiers.shape} \tdonnées chargées ------> {list(df_metiers.columns)}")
+        print(f"[{short_name}]  INFO: Villes    {df_villes.shape} \tdonnées chargées ------> {list(df_villes.columns)}")
+        print(f"[{short_name}]  INFO: Musees    {df_musees.shape} \tdonnées chargées ------> {list(df_musees.columns)}")
+        print(f"[{short_name}]  INFO: Auteurs   {df_artistes.shape} \tdonnées chargées ------> {list(df_artistes.columns)}")
+        print(f"[{short_name}]  INFO: Oeuvres   {df_oeuvres.shape} \tdonnées chargées ------> {list(df_oeuvres.columns)}")
+        print(f"[{short_name}]  INFO: Creer     {df_creation_oeuvres.shape} \tdonnées chargées ------> {list(df_creation_oeuvres.columns)}")
+        print(f"[{short_name}]  INFO: Matériaux {df_materiaux.shape} \tdonnées chargées ------> {list(df_materiaux.columns)}")
+        print(f"[{short_name}]  INFO: Compose   {df_compose.shape} \tdonnées chargées ------> {list(df_compose.columns)}")
+        print(f"[{short_name}]  INFO: Domaines  {df_domaine.shape} \tdonnées chargées ------> {list(df_domaine.columns)}")
+        print(f"[{short_name}]  INFO: Concerner {df_concerner.shape} \tdonnées chargées ------> {list(df_concerner.columns)}")
+            
+    print(f"[{short_name}]------------------------------------------------------ END")
     
