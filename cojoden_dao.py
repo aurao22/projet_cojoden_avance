@@ -1,3 +1,5 @@
+
+# %% import
 import pandas as pd
 import mysql.connector
 import sqlalchemy as sa
@@ -7,8 +9,9 @@ from dotenv import dotenv_values
 from cojoden_functions import convert_df_string_to_search_string
 
 # ----------------------------------------------------------------------------------
-#                        DATABASE INFORMATIONS
+# %%                        DATABASE INFORMATIONS
 # ----------------------------------------------------------------------------------
+
 # recupere les données du dotenv
 DENV = dotenv_values("local_mysql.env")
 db_user = DENV['db_user']
@@ -18,9 +21,18 @@ db_name = DENV['db_name']
 db_client="mysql"
 
 # ----------------------------------------------------------------------------------
-#                        DATABASE INITIALISATION
+# %%                        DATABASE INITIALISATION
 # ----------------------------------------------------------------------------------
-def initialize_data_base():
+def initialize_data_base(script_path=r'dataset/cojoden_avance_creation_script.sql'):
+    """Create the database with the SQL creation script.
+
+    Args:
+        script_path (str, optional): the SQL creation script. Defaults to 'dataset/cojoden_avance_creation_script.sql'.
+
+    Returns:
+        (connection, cursor): The database connection and the cursor
+    """
+    
     short_name = "initialize_data_base"
     connection = mysql.connector.connect(
         user=db_user,
@@ -28,7 +40,7 @@ def initialize_data_base():
         host=db_host)
     cursor = connection.cursor()
 
-    with open(r'dataset/cojoden_avance_creation_script.sql', 'r') as sql_file:
+    with open(script_path, 'r') as sql_file:
 
         for line in sql_file.split(";"):
             try:
@@ -39,7 +51,8 @@ def initialize_data_base():
     return connection, cursor
 
 def data_base_connection():
-    """
+    """Create the database connection and return it.
+
     Returns:
         connection
     """
@@ -63,10 +76,21 @@ def data_base_connection():
     return connection 
 
 # ----------------------------------------------------------------------------------
-# RECUPERATION DES TABLES SOUS FORME DE DF
+# %%     RECUPERATION DES TABLES SOUS FORME DE DF
 # ----------------------------------------------------------------------------------
-
 def get_table_df(table_name, dataset_path, file_name=None, write_file=True, verbose=0):
+    """Read the table, create a DataFrame with it and write the DF CSV file
+
+    Args:
+        table_name (str): table name
+        dataset_path (str): the path to write the CSV file for the table
+        file_name (str, optional): The CSV file name. Defaults to None => 'cojoden_bdd_{table_name}.csv'
+        write_file (bool, optional): To write the CSV file or not. Defaults to True.
+        verbose (int, optional): Log level. Defaults to 0.
+
+    Returns:
+        DataFrame: The table DataFrame
+    """
     short_name = "get_table_df"
     
     dbConnection =_create_engine(verbose=verbose)
@@ -83,9 +107,21 @@ def get_table_df(table_name, dataset_path, file_name=None, write_file=True, verb
     return df
 
 # ----------------------------------------------------------------------------------
-# PEUPLEMENT DE LA BDD
+# %% PEUPLEMENT DE LA BDD
 # ----------------------------------------------------------------------------------
 def populate_database(dataset_path=r'dataset', verbose=0):
+    """Populate all the database in the order :
+    - villes
+    - metiers
+    - artistes
+    - musees
+    - oeuvres
+    - creation_oeuvres
+
+    Args:
+        dataset_path (str, optional): the dataset path, path where all CSV files are store. Defaults to r'dataset'.
+        verbose (int, optional): Log level. Defaults to 0.
+    """
     populate_villes(dataset_path=dataset_path, file_name=r'cojoden_villes_departement_region_pays.csv')
     populate_metiers(dataset_path=dataset_path, file_name=r'cojoden_metiers_uniques.txt')
     populate_artistes(dataset_path=dataset_path, file_name=r'cojoden_artistes.csv')
@@ -94,6 +130,13 @@ def populate_database(dataset_path=r'dataset', verbose=0):
     populate_creation_oeuvres(dataset_path=dataset_path, file_name=r'cojoden_creation_oeuvres.csv')
 
 def populate_musees(dataset_path, file_name=r'cojoden_musees.csv', verbose=0):
+    """Populate the table with the precise CSV file
+    
+    Args:
+        dataset_path (str, optional): the dataset path, path where all CSV files are store. Defaults to r'dataset'.
+        file_name (str, optional):the CSV file name
+        verbose (int, optional): Log level. Defaults to 0.
+    """
     nb_pop = -1
     file_path = join(dataset_path, file_name)
 
@@ -124,6 +167,13 @@ def populate_musees(dataset_path, file_name=r'cojoden_musees.csv', verbose=0):
     return nb_pop
 
 def populate_metiers(dataset_path, file_name=r'cojoden_metiers_uniques.csv', verbose=0):
+    """Populate the table with the precise CSV file
+    
+    Args:
+        dataset_path (str, optional): the dataset path, path where all CSV files are store. Defaults to r'dataset'.
+        file_name (str, optional):the CSV file name
+        verbose (int, optional): Log level. Defaults to 0.
+    """
     nb_pop = -1
     file_path = join(dataset_path, file_name)
 
@@ -153,6 +203,13 @@ def populate_metiers(dataset_path, file_name=r'cojoden_metiers_uniques.csv', ver
     return nb_pop
 
 def populate_villes(dataset_path, file_name=r'cojoden_villes_departement_region_pays.csv', verbose=0):
+    """Populate the table with the precise CSV file
+    
+    Args:
+        dataset_path (str, optional): the dataset path, path where all CSV files are store. Defaults to r'dataset'.
+        file_name (str, optional):the CSV file name
+        verbose (int, optional): Log level. Defaults to 0.
+    """
     nb_pop = -1
     file_path = join(dataset_path, file_name)
 
@@ -182,6 +239,13 @@ def populate_villes(dataset_path, file_name=r'cojoden_villes_departement_region_
     return nb_pop
 
 def populate_artistes(dataset_path, file_name=r'cojoden_artistes.csv', verbose=0):
+    """Populate the table with the precise CSV file
+    
+    Args:
+        dataset_path (str, optional): the dataset path, path where all CSV files are store. Defaults to r'dataset'.
+        file_name (str, optional):the CSV file name
+        verbose (int, optional): Log level. Defaults to 0.
+    """
     nb_pop = -1
     file_path = join(dataset_path, file_name)
 
@@ -213,6 +277,13 @@ def populate_artistes(dataset_path, file_name=r'cojoden_artistes.csv', verbose=0
     return nb_pop
 
 def populate_materiaux(dataset_path, file_name=r'cojoden_materiaux_techniques.csv', verbose=0):
+    """Populate the table with the precise CSV file
+    
+    Args:
+        dataset_path (str, optional): the dataset path, path where all CSV files are store. Defaults to r'dataset'.
+        file_name (str, optional):the CSV file name
+        verbose (int, optional): Log level. Defaults to 0.
+    """
     short_name = "populate_materiaux"
     nb_pop = -1
     file_path = join(dataset_path, file_name)
@@ -243,6 +314,13 @@ def populate_materiaux(dataset_path, file_name=r'cojoden_materiaux_techniques.cs
 
 
 def populate_oeuvres(dataset_path, file_name=r'cojoden_oeuvres.csv', verbose=0):
+    """Populate the table with the precise CSV file
+    
+    Args:
+        dataset_path (str, optional): the dataset path, path where all CSV files are store. Defaults to r'dataset'.
+        file_name (str, optional):the CSV file name
+        verbose (int, optional): Log level. Defaults to 0.
+    """
     short_name = "populate_oeuvres"
     nb_pop = -1
     file_path = join(dataset_path, file_name)
@@ -278,6 +356,13 @@ def populate_oeuvres(dataset_path, file_name=r'cojoden_oeuvres.csv', verbose=0):
     return nb_pop
 
 def populate_creation_oeuvres(dataset_path, file_name=r'cojoden_creation_oeuvres.csv', verbose=0):
+    """Populate the table with the precise CSV file
+    
+    Args:
+        dataset_path (str, optional): the dataset path, path where all CSV files are store. Defaults to r'dataset'.
+        file_name (str, optional):the CSV file name
+        verbose (int, optional): Log level. Defaults to 0.
+    """
     short_name = "populate_creation_oeuvres"
     nb_pop = -1
     file_path = join(dataset_path, file_name)
@@ -309,12 +394,13 @@ def populate_creation_oeuvres(dataset_path, file_name=r'cojoden_creation_oeuvres
 # ----------------------------------------------------------------------------------
 #                        PRIVATE
 # ----------------------------------------------------------------------------------
+# %% executer_sql
 def executer_sql(sql, verbose=0):
     conn = None
     cur = None
     # Séparation des try / except pour différencier les erreurs
     try:
-        conn = connecter()
+        conn = data_base_connection()
         cur = conn.cursor()
         if verbose > 1:
             print("[cojoden_dao > execute] INFO : Base de données crée et correctement.")
@@ -351,6 +437,7 @@ def executer_sql(sql, verbose=0):
             pass       
     return res
 
+# %% _create_sql_url
 def _create_sql_url(verbose=0):
     connection_url = sa.engine.URL.create(
         drivername=db_client,
@@ -363,6 +450,7 @@ def _create_sql_url(verbose=0):
         print(f"[cojoden_dao > sql URL] DEBUG : {connection_url}")
     return connection_url
 
+# %% _create_engine
 def _create_engine(verbose=0):
     # connect_args={'ssl':{'fake_flag_to_enable_tls': True}, 'port': 3306}
     connection_url = _create_sql_url(verbose=verbose)
@@ -370,9 +458,8 @@ def _create_engine(verbose=0):
     return db_connection
 
 # ----------------------------------------------------------------------------------
-#                        MAIN
+#  %%                      TEST
 # ----------------------------------------------------------------------------------
-
 def _test_populate(verbose=1):
     dataset_path=r'C:\Users\User\WORK\workspace-ia\PROJETS\projet_joconde\dataset'
     nb = populate_materiaux(dataset_path=dataset_path, verbose=verbose)
@@ -398,6 +485,9 @@ def _test_get_df(verbose=1):
     df = get_oeuvres_df(dataset_path=dataset_path, verbose=verbose)
     assert df is not None
 
+# ----------------------------------------------------------------------------------
+# %%                       MAIN
+# ----------------------------------------------------------------------------------
 if __name__ == '__main__':
     dataset_path=r'C:\Users\User\WORK\workspace-ia\PROJETS\projet_joconde\dataset'
     _test_get_df(verbose=1)

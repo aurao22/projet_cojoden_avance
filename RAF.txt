@@ -1,0 +1,14 @@
+Corriger le MCD :
+	- Ajouter lien entre métier et association créer => DONE
+	- Supprimer l'association "pratiquer" => DONE
+	- 
+	
+Extraction RAF : 
+	- Extraction COMPOSER 				=> DONE
+	- Extraction DOMAINE
+	- Extraction CONCERNE
+	- Insertion en BDD
+	- Recherche sur plusieurs critères
+	- Recherche sur distance
+	- Module de recherches
+	

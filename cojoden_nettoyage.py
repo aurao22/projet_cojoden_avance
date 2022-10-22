@@ -16,6 +16,18 @@ from cojoden_functions import color_graph_background
 # ---------------------------------------------------------------------------------------------
 # %% load_data
 def load_data(data_set_path,data_set_file_name,nrows = 0, skiprows = 0, verbose=0):
+    """Load datas with less than 75% of NaN values from the dataset file
+
+    Args:
+        data_set_path (str): the dataset path
+        data_set_file_name (str): the dataset file name
+        nrows (int, optional): the number of skipped row. Defaults to 0.
+        skiprows (int, optional): the nyumber of skipped columns. Defaults to 0.
+        verbose (int, optional): Log level. Defaults to 0.
+
+    Returns:
+        DataFrame: Loaded datas
+    """
     
     usecols = ['ref', 'pop_coordonnees', 
         'autr', 'bibl', 'comm', 'deno', 'desc',
@@ -32,7 +44,6 @@ def load_data(data_set_path,data_set_file_name,nrows = 0, skiprows = 0, verbose=
     # Suppression des colonnes non nécessaire :
     # 'www','base','contient_image', 'dacq','dmaj','copy','pop_contient_geolocalisation','aptn', 
     # 'dmis', 'msgcom','museo', 'producteur', 'image','inv', 'phot', 'stat', 'label', 'historique','util','insc',
-
 
     df_origin = None
     if nrows > 0:
@@ -114,6 +125,19 @@ def proceed_duplicated(df_origin, verbose=0):
 
 # %% proceed_na_values
 def proceed_na_values(df_origin, verbose=0):
+    """Processing the NaN values :
+    - Replace (Sans titre) with NaN value
+    - Row title less : Generate a title with the other columns 
+    - Row type oeuvre less : Extract the type from other columns
+    - Text column : create the column with merge of 'sujet_precisions', "description", 'sujet'
+
+    Args:
+        df_origin (DataFrame): The source dataframe
+        verbose (int, optional): Log Level. Defaults to 0.
+
+    Returns:
+        DataFrame: A new DataFrame updated
+    """
     df_clean = df_origin.copy()
 
     # Affectation de NA aux oeuvres qui n'ont pas de titre
@@ -163,6 +187,15 @@ def proceed_na_values(df_origin, verbose=0):
 
 # %% standardize_metier
 def standardize_metier(input_str, verbose=0):
+    """Replace the non standard métier with the standard name.
+
+    Args:
+        input_str (str): the metier to standardize
+        verbose (int, optional): Log level. Defaults to 0.
+
+    Returns:
+        str: standard métier name
+    """
     res = input_str
     if res is not None and isinstance(res, str):
         to_replace = {
@@ -558,6 +591,21 @@ if __name__ == '__main__':
     df_encode = proceed_encoding(df_origin, verbose=verbose)
     df_clean = proceed_duplicated(df_encode, verbose=verbose)
     df_clean_na = proceed_na_values(df_clean, verbose=verbose)
+
+    """
+    OUTPUT expected :
+    [proceed_duplicated]     INFO : Before (650853, 27)
+    [proceed_duplicated]     INFO : after (639325, 27)
+    [proceed_na_values]      INFO : (4653, 27) oeuvres (Sans titre)
+    [proceed_na_values]      INFO : 136447 NA Before
+    [proceed_na_values]      INFO : (0, 27) oeuvres (Sans titre)
+    [proceed_na_values]      INFO : 141100 NA After
+    [proceed_na_values]      INFO : 34168 lignes sans labels supprimées
+    [proceed_na_values]      INFO : 173 NA Titres après génération de titre
+    [proceed_na_values]      INFO : 220220 NA Type d'oeuvres
+    [proceed_na_values]      INFO : 6880 NA Type d'oeuvres après traitement
+    [proceed_na_values]      INFO : 0 NA Texte
+    """
 
     if verbose > 1:
         figure, ax = color_graph_background(1,1)

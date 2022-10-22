@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 import re
 from cojoden_functions import convert_df_string_to_search_string
-import cojoden_nettoyage as cojonet
 
 
 # ---------------------------------------------------------------------------------------------
@@ -754,7 +753,7 @@ def extract_sub(df, dest_path, dest_file_name, keep_cols, col_name, verbose=0):
         df4 = pd.merge(df2,df3, left_index=True, right_index=True)
         df5 = df4.drop(columns=[col_name])
         kp = keep_cols.remove(col_name)
-        df5 = transpose_df_after_split_extend(df5, cols_to_keep=kp , verbose=verbose-1)
+        df5 = cojex.transpose_df_after_split_extend(df5, cols_to_keep=kp , verbose=verbose-1)
         df5 = df5.rename(columns={0:col_name})
         df2 = df5[keep_cols]
         df2 = df2.drop_duplicates()
@@ -1083,6 +1082,8 @@ def _test_clean_metier(verbose=1):
 
 # %% test
 def test(verbose=1):
+    _test_millesime(verbose=verbose)
+    _test_standardize_dimensions(verbose=verbose)
     _test_clan_artiste(verbose=verbose)
     _test_extract_metier_for_artiste_and_oeuvre(verbose=verbose)
     _test_clean_metier(verbose=verbose)
