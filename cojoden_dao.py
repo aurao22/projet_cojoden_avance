@@ -1,6 +1,8 @@
 
 # %% import
 import mysql.connector
+import sqlalchemy as sa
+import pandas as pd
 from mysql.connector import errorcode
 from os import getcwd
 from os.path import join
@@ -10,7 +12,6 @@ from tqdm import tqdm
 # ----------------------------------------------------------------------------------
 # %%                        DATABASE INFORMATIONS
 # ----------------------------------------------------------------------------------
-verbose = 1
 
 # Récupère le répertoire du programme
 execution_path = getcwd() + "\\"
@@ -126,13 +127,13 @@ def executer_sql(sql, verbose=0):
             pass       
     return res
 
-# %% _create_engine
+# %% create_engine
 def create_engine(verbose=0):
     # connect_args={'ssl':{'fake_flag_to_enable_tls': True}, 'port': 3306}
     connection_url = _create_sql_url(verbose=verbose)
     db_connection = sa.create_engine(connection_url, pool_recycle=3600) # ,connect_args= connect_args)
     return db_connection
-
+    
 # ----------------------------------------------------------------------------------
 # %%     RECUPERATION DES TABLES SOUS FORME DE DF
 # ----------------------------------------------------------------------------------
@@ -151,7 +152,7 @@ def get_table_df(table_name, dataset_path, file_name=None, write_file=True, verb
     """
     short_name = "get_table_df"
     
-    dbConnection =_create_engine(verbose=verbose)
+    dbConnection =create_engine(verbose=verbose)
 
     df = pd.read_sql(sql=f'SELECT * FROM {table_name}', con=dbConnection)
 
