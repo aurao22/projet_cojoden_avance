@@ -50,6 +50,7 @@ def initialize_data_base(script_path=r'dataset/cojoden_avance_creation_script.sq
 
     return connection, cursor
 
+# %% data_base_connection
 def data_base_connection():
     """Create the database connection and return it.
 
