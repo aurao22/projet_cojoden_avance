@@ -4,8 +4,10 @@ from os.path import join
 import pandas as pd
 import numpy as np
 import re
-from cojoden_functions import convert_df_string_to_search_string, transpose_df_after_split_extend
-import cojoden_nettoyage as cojonet
+import sys
+sys.path.append(r"C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance")
+from data_preprocessing.cojoden_functions import convert_df_string_to_search_string, transpose_df_after_split_extend
+import data_preprocessing.cojoden_nettoyage as cojonet
 
 
 # ---------------------------------------------------------------------------------------------

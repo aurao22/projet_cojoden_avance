@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 import csv
 import re
 from IPython.core.display import HTML
-from cojoden_functions import color_graph_background
+import sys
+sys.path.append(r"C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance")
+from data_preprocessing.cojoden_functions import color_graph_background
 
 
 # ---------------------------------------------------------------------------------------------

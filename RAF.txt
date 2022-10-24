@@ -7,8 +7,10 @@ Extraction RAF :
 	- Extraction COMPOSER 				=> DONE
 	- Extraction DOMAINE 				=> DONE
 	- Extraction CONCERNE 				=> DONE
-	- Insertion en BDD
+	- Insertion en BDD					=> DONE
 	- Recherche sur plusieurs critères
 	- Recherche sur distance
 	- Module de recherches
+	- Insertion en BDD d'une oeuvre (oeuvre par oeuvre)
+	
 	

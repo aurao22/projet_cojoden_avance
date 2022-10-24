@@ -3,8 +3,10 @@
 import pandas as pd
 import mysql.connector
 from os.path import join, exists
-from cojoden_functions import convert_df_string_to_search_string
-from cojoden_dao import create_engine
+import sys
+sys.path.append(r"C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance")
+from data_preprocessing.cojoden_functions import convert_df_string_to_search_string
+from dao.cojoden_dao import create_engine
 from tqdm import tqdm
 
 # ----------------------------------------------------------------------------------
@@ -31,20 +33,7 @@ def populate_musees(dataset_path, file_name=r'cojoden_musees.csv', verbose=0):
             df = df.sort_values('nom_search')
             df.to_csv(join(dataset_path,file_name.replace(".csv", "-v2.csv")), index=False)
 
-        dbConnection = create_engine(verbose=verbose)
-        try:
-            nb_pop = df[['museo', 'nom', 'nom_search', 'ville', 'latitude', 'longitude']].to_sql(name='musee', con=dbConnection, if_exists='append', index=False, chunksize=10)
-        except mysql.connector.IntegrityError as error:
-            nb_pop = 0
-            if verbose > 0:
-                print(f"[cojoden_dao > populate_musees] WARNING : la table est déjà peuplée.\n\t- {error}")
-        except Exception as error:
-            if  "IntegrityError" in str(error):
-                nb_pop = 0
-                if verbose > 0:
-                    print(f"[cojoden_dao > populate_musees] WARNING : la table est déjà peuplée.\n\t- {error}")
-            else:
-                raise error
+        nb_pop = _populate_df_generic(df=df[['museo', 'nom', 'nom_search', 'ville', 'latitude', 'longitude']], table_name='musee', verbose=verbose)
     return nb_pop
 
 def populate_metiers(dataset_path, file_name=r'cojoden_metiers_uniques.csv', verbose=0):
@@ -72,20 +61,7 @@ def populate_metiers(dataset_path, file_name=r'cojoden_metiers_uniques.csv', ver
         except:
             pass
         
-        dbConnection =create_engine(verbose=verbose)
-        try:
-            nb_pop = df.to_sql(name='metier', con=dbConnection, if_exists='append', index=False, chunksize=10)
-        except mysql.connector.IntegrityError as error:
-            nb_pop = 0
-            if verbose > 0:
-                print(f"[cojoden_dao > populate_villes] WARNING : la table est déjà peuplée.\n\t- {error}")
-        except Exception as error:
-            if  "IntegrityError" in str(error):
-                nb_pop = 0
-                if verbose > 0:
-                    print(f"[cojoden_dao > populate_villes] WARNING : la table est déjà peuplée.\n\t- {error}")
-            else:
-                raise error
+        nb_pop = _populate_df_generic(df=df, table_name='metier', verbose=verbose)
     return nb_pop
 
 def populate_villes(dataset_path, file_name=r'cojoden_villes_departement_region_pays.csv', verbose=0):
@@ -108,20 +84,9 @@ def populate_villes(dataset_path, file_name=r'cojoden_villes_departement_region_
             df = df.sort_values('ville_search')
             df = df.drop_duplicates('ville_search')
             df.to_csv(join(dataset_path,file_name.replace(".csv", "-v2.csv")), index=False)
-        dbConnection =create_engine(verbose=verbose)
-        try:
-            nb_pop = df[['id', 'ville_search', 'ville', 'departement', 'region1']].to_sql(name='ville', con=dbConnection, if_exists='append', index=False)
-        except mysql.connector.IntegrityError as error:
-            nb_pop = 0
-            if verbose > 0:
-                print(f"[cojoden_dao > populate_villes] WARNING : la table est déjà peuplée.\n\t- {error}")
-        except Exception as error:
-            if  "IntegrityError" in str(error):
-                nb_pop = 0
-                if verbose > 0:
-                    print(f"[cojoden_dao > populate_villes] WARNING : la table est déjà peuplée.\n\t- {error}")
-            else:
-                raise error
+        
+        nb_pop = _populate_df_generic(df=df[['id', 'ville_search', 'ville', 'departement', 'region1']], table_name='ville', verbose=verbose)
+        
     return nb_pop
 
 def populate_artistes(dataset_path, file_name=r'cojoden_artistes.csv', verbose=0):
@@ -146,20 +111,9 @@ def populate_artistes(dataset_path, file_name=r'cojoden_artistes.csv', verbose=0
         df = df.sort_values('nom_search')
         df = df.drop_duplicates('nom_search')
         df.to_csv(join(dataset_path,file_name.replace(".csv", "-v2.csv")), index=False)
-        dbConnection =create_engine(verbose=verbose)
-        try:
-            nb_pop = df.to_sql(name='artiste', con=dbConnection, if_exists='append', index=False, chunksize=1)
-        except mysql.connector.IntegrityError as error:
-            nb_pop = 0
-            if verbose > 0:
-                print(f"[cojoden_dao > populate_artistes] WARNING : la table est déjà peuplée.\n\t- {error}")
-        except Exception as error:
-            if  "IntegrityError" in str(error):
-                nb_pop = 0
-                if verbose > 0:
-                    print(f"[cojoden_dao > populate_artistes] WARNING : la table est déjà peuplée.\n\t- {error}")
-            else:
-                raise error
+        
+        nb_pop = _populate_df_generic(df=df, table_name='artiste'.lower(), verbose=verbose)
+
     return nb_pop
 
 def populate_materiaux(dataset_path, file_name=r'cojoden_materiaux_techniques.csv', verbose=0):
@@ -182,20 +136,8 @@ def populate_materiaux(dataset_path, file_name=r'cojoden_materiaux_techniques.cs
             df = df.sort_values('mat_search')
             df = df.drop_duplicates('mat_search')
             df.to_csv(join(dataset_path,file_name.replace(".csv", "-v2.csv")), index=False)
-        dbConnection =create_engine(verbose=verbose)
-        try:
-            nb_pop = df.to_sql(name='MATERIEAUX_TECHNIQUE'.lower(), con=dbConnection, if_exists='append', index=False, chunksize=10)
-        except mysql.connector.IntegrityError as error:
-            nb_pop = 0
-            if verbose > 0:
-                print(f"[cojoden_dao > {short_name}] WARNING : la table est déjà peuplée.\n\t- {error}")
-        except Exception as error:
-            if  "IntegrityError" in str(error):
-                nb_pop = 0
-                if verbose > 0:
-                    print(f"[cojoden_dao > {short_name}] WARNING : la table est déjà peuplée.\n\t- {error}")
-            else:
-                raise error
+        
+        nb_pop = _populate_df_generic(df=df, table_name='MATERIEAUX_TECHNIQUE'.lower(), verbose=verbose)
     return nb_pop
 
 
@@ -225,20 +167,8 @@ def populate_oeuvres(dataset_path, file_name=r'cojoden_oeuvres.csv', verbose=0):
 
         df.to_csv(join(dataset_path,file_name.replace(".csv", "-v2.csv")), index=False)
 
-        dbConnection =create_engine(verbose=verbose)
-        try:
-            nb_pop = df.to_sql(name='OEUVRE'.lower(), con=dbConnection, if_exists='append', index=False, chunksize=10)
-        except mysql.connector.IntegrityError as error:
-            nb_pop = 0
-            if verbose > 0:
-                print(f"[cojoden_dao > {short_name}] WARNING : la table est déjà peuplée.\n\t- {error}")
-        except Exception as error:
-            if  "IntegrityError" in str(error):
-                nb_pop = 0
-                if verbose > 0:
-                    print(f"[cojoden_dao > {short_name}] WARNING : la table est déjà peuplée.\n\t- {error}")
-            else:
-                raise error
+        nb_pop = _populate_df_generic(df=df, table_name='OEUVRE'.lower(), verbose=verbose)
+
     return nb_pop
 
 def populate_creation_oeuvres(dataset_path, file_name=r'cojoden_creation_oeuvres.csv', verbose=0):
@@ -353,7 +283,6 @@ def _populate_generic(dataset_path, file_name, table_name, verbose=0):
         file_name (str, optional):the CSV file name
         verbose (int, optional): Log level. Defaults to 0.
     """
-    short_name = f"populate_generic_{table_name}"
     nb_pop = -1
     file_path = join(dataset_path, file_name)
 
@@ -361,20 +290,34 @@ def _populate_generic(dataset_path, file_name, table_name, verbose=0):
         df = pd.read_csv(file_path)
         
         df.to_csv(join(dataset_path,file_name.replace(".csv", "-v2.csv")), index=False)
-        dbConnection =create_engine(verbose=verbose)
-        try:
-            nb_pop = df.to_sql(name=table_name.lower(), con=dbConnection, if_exists='append', index=False, chunksize=10)
-        except mysql.connector.IntegrityError as error:
+        nb_pop = _populate_df_generic(df=df, table_name=table_name, verbose=verbose)
+    return nb_pop
+
+def _populate_df_generic(df, table_name, verbose=0):
+    """Populate the table with the precise CSV file
+    
+    Args:
+        dataset_path (str, optional): the dataset path, path where all CSV files are store. Defaults to r'dataset'.
+        file_name (str, optional):the CSV file name
+        verbose (int, optional): Log level. Defaults to 0.
+    """
+    short_name = f"_populate_df_generic{table_name}"
+    nb_pop = -1  
+        
+    dbConnection =create_engine(verbose=verbose)
+    try:
+        nb_pop = df.to_sql(name=table_name.lower(), con=dbConnection, if_exists='fail', index=False, chunksize=10)
+    except mysql.connector.IntegrityError as error:
+        nb_pop = 0
+        if verbose > 0:
+            print(f"[cojoden_dao > {short_name}] WARNING : la table {table_name} est déjà peuplée.\n\t- {error}")
+    except Exception as error:
+        if  "IntegrityError" in str(error):
             nb_pop = 0
             if verbose > 0:
                 print(f"[cojoden_dao > {short_name}] WARNING : la table {table_name} est déjà peuplée.\n\t- {error}")
-        except Exception as error:
-            if  "IntegrityError" in str(error):
-                nb_pop = 0
-                if verbose > 0:
-                    print(f"[cojoden_dao > {short_name}] WARNING : la table {table_name} est déjà peuplée.\n\t- {error}")
-            else:
-                raise error
+        else:
+            raise error
     return nb_pop
 
 # ----------------------------------------------------------------------------------
@@ -419,6 +362,8 @@ if __name__ == '__main__':
     # populate_composer(dataset_path=dataset_path, verbose=verbose)
     # populate_domaine(dataset_path=dataset_path, verbose=verbose)
     # populate_concerner(dataset_path=dataset_path, verbose=verbose)
+
+    
 
     _datas_table_names = ["metiers" ,"villes", "musees" , "auteurs", "oeuvres", "creer", "materiaux", "composer", "domaines", "concerner"]
     for table_name in tqdm(_datas_table_names, desc="TEST populate_table"):
