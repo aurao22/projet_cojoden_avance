@@ -32,19 +32,26 @@ db_name = DENV['db_name']
 db_client="mysql"
 
 # Les tables sont dans l'ordre de création
-table_names = ["metier","ville", "domaine","artiste",  "musee", "materieaux_technique", "oeuvre", "composer", "creer", "concerner"]
+table_names = ["metier","ville", "domaine","artiste",  "musee", "materiaux_technique", "oeuvre", "composer", "creer", "concerner"]
 
 # ----------------------------------------------------------------------------------
 # %%                        DATABASE STATUS
 # ----------------------------------------------------------------------------------
 def database_missing_tables(verbose=0):
+    short_name = "database_missing_tables"
     missing_table = table_names.copy()
-    res = executer_sql(sql="SHOW TABLES FROM cojoden_avance;", verbose=verbose)
-    
-    for row in res:
-        table_name = row[0]
-        if table_name in missing_table:
-            missing_table.remove(table_name)
+    try:
+        res = executer_sql(sql="SHOW TABLES FROM cojoden_avance;", verbose=verbose)
+        
+        for row in res:
+            table_name = row[0]
+            if table_name in missing_table:
+                missing_table.remove(table_name)
+    except Exception as error:
+        err_str = str(error)
+        if "NoneType" not in err_str and 'cursor' not in err_str:
+            print(f"[{short_name}] ERROR : {err_str}")
+            raise error
 
     return missing_table
 
@@ -58,7 +65,8 @@ def initialize_data_base(reset_if_exist=False, verbose=0):
     """Create the database with the SQL creation script.
 
     Args:
-        script_path (str, optional): the SQL creation script. Defaults to 'dataset/cojoden_avance_creation_script.sql'.
+        reset_if_exist (boolean, optional): True to drop the database before creation, Default = False.
+        verbose (int, optionnal) : Log level, Default = 0
 
     Returns:
         (connection, cursor): The database connection and the cursor
@@ -69,10 +77,48 @@ def initialize_data_base(reset_if_exist=False, verbose=0):
         if verbose > 0:
             print(f"[{short_name}] INFO : Database ----- DROP")
     
+    if not database_exist():
+        connection = None
+        cursor = None
+        request = ""
+        try:
+            connection = mysql.connector.connect(
+                user=db_user,
+                password=db_pwd,
+                host=db_host)
+            cursor = connection.cursor()
+            request = 'create database cojoden_avance;'
+            if verbose > 1:
+                print(f"[{short_name}] DEBUG : \n{request}")
+            res = cursor.execute(request)
+            if verbose > 1:
+                print(f"[{short_name}] DEBUG : res : {res}")
+            connection.commit()
+            request = 'use cojoden_avance;'
+            if verbose > 1:
+                print(f"[{short_name}] DEBUG : \n{request}")
+            res = cursor.execute(request)
+            if verbose > 1:
+                print(f"[{short_name}] DEBUG : res : {res}")
+        except Exception as msg:
+            print(f"[{short_name}] \tERROR : \n\t- {request} \n\t- {msg}")
+        finally:
+            try:
+                if verbose > 1:
+                    print(f"[{short_name}] DEBUG : Le curseur est fermé")
+                cursor.close()
+            except Exception:
+                pass
+            try:
+                if verbose > 1:
+                    print(f"[{short_name}] DEBUG : La connexion est fermée")
+                connection.close()
+            except Exception:
+                pass
+    
     missing_table = database_missing_tables(verbose=verbose)
     for table in missing_table:
-        locals()["_create_table_"+table](verbose=verbose)
-        globals()["_create_table_"+table](verbose=verbose)
+        globals()["_create_table_"+table]( verbose=verbose)
     if verbose > 0:
         print(f"[{short_name}] INFO : Tables {missing_table} ----- CREATED")
 
@@ -85,7 +131,6 @@ def initialize_data_base_old(reset_if_exist=False, verbose=0):
     Returns:
         (connection, cursor): The database connection and the cursor
     """
-    
     short_name = "initialize_data_base"
     if reset_if_exist:
         reset_database
@@ -129,18 +174,18 @@ def initialize_data_base_old(reset_if_exist=False, verbose=0):
 
     return connection, cursor
 
-def _create_table_metier(self, verbose=False):
-    res = executer_sql("""CREATE TABLE IF NOT EXISTS `cojoden`.`metier` (
+def _create_table_metier(verbose=0):
+    res = executer_sql("""CREATE TABLE IF NOT EXISTS `metier` (
     `metier_search` VARCHAR(100) NOT NULL,
     `metier` VARCHAR(255) NULL,
     `categorie` VARCHAR(255) NULL,
     PRIMARY KEY (`metier_search`))
-    ENGINE = InnoDB;
+    ENGINE=MYISAM;
     """, verbose=verbose)
     return res
 
-def _create_table_ville(self, verbose=False):
-    res = executer_sql("""CREATE TABLE IF NOT EXISTS `cojoden`.`VILLE` (
+def _create_table_ville(verbose=0):
+    res = executer_sql("""CREATE TABLE IF NOT EXISTS `VILLE` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `ville_search` VARCHAR(100) NOT NULL,
     `ville` VARCHAR(100) NOT NULL,
@@ -149,34 +194,34 @@ def _create_table_ville(self, verbose=False):
     `region2` VARCHAR(100) NULL,
     `pays` VARCHAR(100) NULL,
     PRIMARY KEY (`id`))
-    ENGINE = InnoDB;
+    ENGINE=MYISAM;
     """, verbose=verbose)
     return res
 
-def _create_table_domaine(self, verbose=False):
-    res = executer_sql("""CREATE TABLE IF NOT EXISTS `cojoden`.`DOMAINE` (
+def _create_table_domaine(verbose=0):
+    res = executer_sql("""CREATE TABLE IF NOT EXISTS `DOMAINE` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `dom_search` VARCHAR(255) NOT NULL,
     `domaine` VARCHAR(255) NOT NULL,
     PRIMARY KEY (`id`))
-    ENGINE = InnoDB;
+    ENGINE=MYISAM;
     """, verbose=verbose)
     return res
 
-def _create_table_artiste(self, verbose=False):
-    res = executer_sql("""CREATE TABLE IF NOT EXISTS `cojoden`.`artiste` (
+def _create_table_artiste(verbose=0):
+    res = executer_sql("""CREATE TABLE IF NOT EXISTS `artiste` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `nom_search` VARCHAR(255) NOT NULL,
     `nom_naissance` VARCHAR(255) NOT NULL,
     `nom_dit` VARCHAR(255) NULL,
     `commentaire` TEXT NULL,
     PRIMARY KEY (`id`))
-    ENGINE = InnoDB;
+    ENGINE=MYISAM;
     """, verbose=verbose)
     return res
 
-def _create_table_musee(self, verbose=False):
-    res = executer_sql("""CREATE TABLE IF NOT EXISTS `cojoden`.`MUSEE` (
+def _create_table_musee(verbose=0):
+    res = executer_sql("""CREATE TABLE IF NOT EXISTS `MUSEE` (
     `museo` VARCHAR(100) NOT NULL,
     `nom_search` VARCHAR(100) NULL,
     `nom` VARCHAR(100) NULL,
@@ -185,24 +230,24 @@ def _create_table_musee(self, verbose=False):
     `plaquette_url` VARCHAR(1000) NULL,
     `ville` INT NULL,
     PRIMARY KEY (`museo`),
-    CONSTRAINT `fk_musee_ville` FOREIGN KEY (`ville`) REFERENCES `cojoden`.`VILLE` (`id`)
+    CONSTRAINT `fk_musee_ville` FOREIGN KEY (`ville`) REFERENCES `VILLE` (`id`)
     )
-    ENGINE = InnoDB;
+    ENGINE=MYISAM;
     """, verbose=verbose)
     return res
 
-def _create_table_materiaux_technique(self, verbose=False):
-    res = executer_sql("""CREATE TABLE IF NOT EXISTS `cojoden`.`materiaux_technique` (
+def _create_table_materiaux_technique(verbose=0):
+    res = executer_sql("""CREATE TABLE IF NOT EXISTS `materiaux_technique` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `mat_search` VARCHAR(100) NOT NULL,
     `materiaux_technique` VARCHAR(100) NULL,
     PRIMARY KEY (`id`))
-    ENGINE = InnoDB;
+    ENGINE=MYISAM;
     """, verbose=verbose)
     return res
 
-def _create_table_oeuvre(self, verbose=False):
-    res = executer_sql("""CREATE TABLE IF NOT EXISTS `cojoden`.`oeuvre` (
+def _create_table_oeuvre(verbose=0):
+    res = executer_sql("""CREATE TABLE IF NOT EXISTS `oeuvre` (
     `ref` VARCHAR(100) NOT NULL,
     `titre` VARCHAR(1000) NULL,
     `type` VARCHAR(1000) NULL,
@@ -219,15 +264,15 @@ def _create_table_oeuvre(self, verbose=False):
     `lieux_conservation` VARCHAR(100) NOT NULL,
     `creation_lieux` INT NULL,
     PRIMARY KEY (`ref`),
-    CONSTRAINT `fk_oeuvre_musee` FOREIGN KEY (`lieux_conservation`) REFERENCES `cojoden`.`MUSEE` (`museo`),
-    CONSTRAINT `fk_oeuvre_ville` FOREIGN KEY (`creation_lieux`) REFERENCES `cojoden`.`VILLE` (`id`)
+    CONSTRAINT `fk_oeuvre_musee` FOREIGN KEY (`lieux_conservation`) REFERENCES `MUSEE` (`museo`),
+    CONSTRAINT `fk_oeuvre_ville` FOREIGN KEY (`creation_lieux`) REFERENCES `VILLE` (`id`)
     )
-    ENGINE = InnoDB;
+    ENGINE=MYISAM;
     """, verbose=verbose)
     return res
 
-def _create_table_composer(self, verbose=False):
-    res = executer_sql("""CREATE TABLE IF NOT EXISTS `cojoden`.`composer` (
+def _create_table_composer(verbose=0):
+    res = executer_sql("""CREATE TABLE IF NOT EXISTS `composer` (
     `oeuvre` VARCHAR(100) NOT NULL,
     `materiaux` INT NOT NULL,
     `complement` VARCHAR(1000) NULL,
@@ -236,17 +281,17 @@ def _create_table_composer(self, verbose=False):
     INDEX `fk_composer_oeuvre_idx` (`oeuvre` ASC) INVISIBLE,
     CONSTRAINT `fk_composer_oeuvre`
         FOREIGN KEY (`oeuvre`)
-        REFERENCES `cojoden`.`OEUVRE` (`ref`),
+        REFERENCES `OEUVRE` (`ref`),
     CONSTRAINT `fk_composer_matiere`
         FOREIGN KEY (`materiaux`)
-        REFERENCES `cojoden`.`MATERIEAUX_TECHNIQUE` (`id`)
+        REFERENCES `materieaux_technique` (`id`)
     )
-    ENGINE = InnoDB;
+    ENGINE=MYISAM;
     """, verbose=verbose)
     return res
 
-def _create_table_creer(self, verbose=False):
-    res = executer_sql("""CREATE TABLE IF NOT EXISTS `cojoden`.`creer` (
+def _create_table_creer(verbose=0):
+    res = executer_sql("""CREATE TABLE IF NOT EXISTS `creer` (
     `oeuvre` VARCHAR(100) NOT NULL,
     `artiste` INT NOT NULL,
     `role` VARCHAR(100) NOT NULL,
@@ -256,20 +301,20 @@ def _create_table_creer(self, verbose=False):
     INDEX `fk_creer_metier_idx` (`role` ASC) VISIBLE,
     CONSTRAINT `fk_creer_oeuvre`
         FOREIGN KEY (`oeuvre`)
-        REFERENCES `cojoden`.`OEUVRE` (`ref`),
+        REFERENCES `OEUVRE` (`ref`),
     CONSTRAINT `fk_creer_artiste`
         FOREIGN KEY (`artiste`)
-        REFERENCES `cojoden`.`ARTISTE` (`id`),
+        REFERENCES `ARTISTE` (`id`),
     CONSTRAINT `fk_creer_metier`
         FOREIGN KEY (`role`)
-        REFERENCES `cojoden`.`METIER` (`metier_search`)
+        REFERENCES `metier` (`metier_search`)
         )
-    ENGINE = InnoDB;
+    ENGINE=MYISAM;
     """, verbose=verbose)
     return res
 
-def _create_table_concerner(self, verbose=False):
-    res = executer_sql("""CREATE TABLE IF NOT EXISTS `cojoden`.`concerner` (
+def _create_table_concerner(verbose=0):
+    res = executer_sql("""CREATE TABLE IF NOT EXISTS `concerner` (
     `domaine` INT NOT NULL,
     `oeuvre` VARCHAR(100) NOT NULL,
     PRIMARY KEY (`domaine`, `oeuvre`),
@@ -277,12 +322,12 @@ def _create_table_concerner(self, verbose=False):
     INDEX `fk_converner_domaine_idx` (`domaine` ASC) INVISIBLE,
     CONSTRAINT `fk_concerner_domaine`
         FOREIGN KEY (`domaine`)
-        REFERENCES `cojoden`.`DOMAINE` (`id`),
+        REFERENCES `DOMAINE` (`id`),
     CONSTRAINT `fk_concerner_oeuvre`
         FOREIGN KEY (`oeuvre`)
-        REFERENCES `cojoden`.`OEUVRE` (`ref`)
+        REFERENCES `OEUVRE` (`ref`)
     )
-    ENGINE = InnoDB;
+    ENGINE=MYISAM;
     """, verbose=verbose)
     return res
 
@@ -358,9 +403,9 @@ def executer_sql(sql, verbose=0):
             print(f"[{short_name}] DEBUG : connexion à la BDD")
         try:
             if verbose > 1 :
-                print(f"[{short_name}] DEBUG :", sql, end="")
+                print(f"[{short_name}] DEBUG : \n{sql}")
             cur.execute(sql)
-            if "INSERT" in sql or "UPDATE" in sql:
+            if "INSERT" in sql or "UPDATE" in sql or "CREATE" in sql or "DROP" in sql:
                 conn.commit()
 
             if "INSERT" in sql:
@@ -368,13 +413,17 @@ def executer_sql(sql, verbose=0):
             else:
                 res = cur.fetchall()
             if verbose>1:
-                print(" =>",res)
+                print(f"[{short_name}] DEBUG : {res}")
 
         except Exception as error:
-            print(f"[{short_name}] ERROR : Erreur exécution SQL", error)
+            print(f"[{short_name}] ERROR : Erreur exécution SQL :")
+            print(f"[{short_name}] ERROR :\t- {error}")
+            print(f"[{short_name}] ERROR :\t- {sql}")
             raise error
     except Exception as error:
-        print(f"[{short_name}] ERROR : Erreur de connexion à la BDD", error)
+        print(f"[{short_name}] ERROR : Erreur de connexion à la BDD :")
+        print(f"[{short_name}] ERROR :\t- {error}")
+        print(f"[{short_name}] ERROR :\t- {sql}")
         raise error
     finally:
         try:
@@ -445,19 +494,18 @@ def _create_sql_url(verbose=0):
     return connection_url
 
 
-
 # ----------------------------------------------------------------------------------
 #  %%                      TEST
 # ----------------------------------------------------------------------------------
-def _test_database_missing_table(verbose=1):
-    res = database_missing_tables()
+def _test_database_missing_table(verbose=2):
+    res = database_missing_tables(verbose=verbose)
     assert len(res) == 0
 
 # ----------------------------------------------------------------------------------
 # %%                       MAIN
 # ----------------------------------------------------------------------------------
 if __name__ == '__main__':
-    reset_database(verbose=1)
+    reset_database(verbose=2)
 
-    _test_database_missing_table()
+    _test_database_missing_table(verbose=2)
 
