@@ -122,11 +122,13 @@ def initialize_data_base(reset_if_exist=False, verbose=0):
     if verbose > 0:
         print(f"[{short_name}] INFO : Tables {missing_table} ----- CREATED")
 
-def initialize_data_base_old(reset_if_exist=False, verbose=0):
+def initialize_data_base_via_script(script_path, reset_if_exist=False, verbose=0):
     """Create the database with the SQL creation script.
 
     Args:
         script_path (str, optional): the SQL creation script. Defaults to 'dataset/cojoden_avance_creation_script.sql'.
+        reset_if_exist (boolean, optional): True to drop the database before creation, Default = False.
+        verbose (int, optionnal) : Log level, Default = 0
 
     Returns:
         (connection, cursor): The database connection and the cursor
