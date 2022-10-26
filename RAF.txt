@@ -8,9 +8,11 @@ Extraction RAF :
 	- Extraction DOMAINE 				=> DONE
 	- Extraction CONCERNE 				=> DONE
 	- Insertion en BDD					=> DONE
+	- Vérifier les données manquantes et pourquoi 
 	- Recherche sur plusieurs critères
 	- Recherche sur distance
 	- Module de recherches
+	- IHM streamlit pour la recherche
 	- Insertion en BDD d'une oeuvre (oeuvre par oeuvre)
 	
 	
