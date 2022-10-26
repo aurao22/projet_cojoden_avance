@@ -6,14 +6,14 @@ from os.path import join, exists
 import sys
 sys.path.append(r"C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance")
 from data_preprocessing.cojoden_functions import convert_df_string_to_search_string
-from dao.cojoden_dao import create_engine
+from dao.cojoden_dao import executer_sql, create_engine, TABLES_NAME
 from tqdm import tqdm
 
 # ----------------------------------------------------------------------------------
 # %% PEUPLEMENT DE LA BDD
 # ----------------------------------------------------------------------------------
 
-def populate_musees(dataset_path, file_name=r'cojoden_musees.csv', verbose=0):
+def populate_musee(dataset_path, file_name=r'cojoden_musees.csv', verbose=0):
     """Populate the table with the precise CSV file
     
     Args:
@@ -36,7 +36,7 @@ def populate_musees(dataset_path, file_name=r'cojoden_musees.csv', verbose=0):
         nb_pop = _populate_df_generic(df=df[['museo', 'nom', 'nom_search', 'ville', 'latitude', 'longitude']], table_name='musee', verbose=verbose)
     return nb_pop
 
-def populate_metiers(dataset_path, file_name=r'cojoden_metiers_uniques.csv', verbose=0):
+def populate_metier(dataset_path, file_name=r'cojoden_metiers_uniques.csv', verbose=0):
     """Populate the table with the precise CSV file
     
     Args:
@@ -64,7 +64,7 @@ def populate_metiers(dataset_path, file_name=r'cojoden_metiers_uniques.csv', ver
         nb_pop = _populate_df_generic(df=df, table_name='metier', verbose=verbose)
     return nb_pop
 
-def populate_villes(dataset_path, file_name=r'cojoden_villes_departement_region_pays.csv', verbose=0):
+def populate_ville(dataset_path, file_name=r'cojoden_villes_departement_region_pays.csv', verbose=0):
     """Populate the table with the precise CSV file
     
     Args:
@@ -89,7 +89,7 @@ def populate_villes(dataset_path, file_name=r'cojoden_villes_departement_region_
         
     return nb_pop
 
-def populate_artistes(dataset_path, file_name=r'cojoden_artistes.csv', verbose=0):
+def populate_artiste(dataset_path, file_name=r'cojoden_artistes.csv', verbose=0):
     """Populate the table with the precise CSV file
     
     Args:
@@ -116,7 +116,7 @@ def populate_artistes(dataset_path, file_name=r'cojoden_artistes.csv', verbose=0
 
     return nb_pop
 
-def populate_materiaux(dataset_path, file_name=r'cojoden_materiaux_techniques.csv', verbose=0):
+def populate_materiaux_technique(dataset_path, file_name=r'cojoden_materiaux_techniques.csv', verbose=0):
     """Populate the table with the precise CSV file
     
     Args:
@@ -124,7 +124,7 @@ def populate_materiaux(dataset_path, file_name=r'cojoden_materiaux_techniques.cs
         file_name (str, optional):the CSV file name
         verbose (int, optional): Log level. Defaults to 0.
     """
-    short_name = "populate_materiaux"
+    short_name = "populate_materiaux_technique"
     nb_pop = -1
     file_path = join(dataset_path, file_name)
 
@@ -137,11 +137,11 @@ def populate_materiaux(dataset_path, file_name=r'cojoden_materiaux_techniques.cs
             df = df.drop_duplicates('mat_search')
             df.to_csv(join(dataset_path,file_name.replace(".csv", "-v2.csv")), index=False)
         
-        nb_pop = _populate_df_generic(df=df, table_name='MATERIEAUX_TECHNIQUE'.lower(), verbose=verbose)
+        nb_pop = _populate_df_generic(df=df, table_name='materiaux_technique'.lower(), verbose=verbose)
     return nb_pop
 
 
-def populate_oeuvres(dataset_path, file_name=r'cojoden_oeuvres.csv', verbose=0):
+def populate_oeuvre(dataset_path, file_name=r'cojoden_oeuvres.csv', verbose=0):
     """Populate the table with the precise CSV file
     
     Args:
@@ -149,7 +149,7 @@ def populate_oeuvres(dataset_path, file_name=r'cojoden_oeuvres.csv', verbose=0):
         file_name (str, optional):the CSV file name
         verbose (int, optional): Log level. Defaults to 0.
     """
-    short_name = "populate_oeuvres"
+    short_name = "populate_oeuvre"
     nb_pop = -1
     file_path = join(dataset_path, file_name)
 
@@ -171,7 +171,7 @@ def populate_oeuvres(dataset_path, file_name=r'cojoden_oeuvres.csv', verbose=0):
 
     return nb_pop
 
-def populate_creation_oeuvres(dataset_path, file_name=r'cojoden_creation_oeuvres.csv', verbose=0):
+def populate_creer(dataset_path, file_name=r'cojoden_creation_oeuvres.csv', verbose=0):
     """Populate the table with the precise CSV file
     
     Args:
@@ -227,32 +227,11 @@ def populate_composer(dataset_path, file_name=r'cojoden_materiaux_techniques_com
     nb_pop = _populate_generic(dataset_path=dataset_path, file_name=file_name, table_name='COMPOSER', verbose=verbose)
     return nb_pop
 
-_datas_populate_functions = {
-    "metiers"   : populate_metiers,
-    "villes"    : populate_villes,
-    "musees"    : populate_musees,
-    "auteurs"   : populate_artistes,
-    "oeuvres"   : populate_oeuvres,
-    "creer"     : populate_creation_oeuvres,
-    "materiaux" : populate_materiaux,
-    "composer"  : populate_composer,
-    "domaines"  : populate_domaine,
-    "concerner" : populate_concerner,
-}
-_datas_table_names = ["metiers" ,"villes", "musees" , "auteurs", "oeuvres", "creer", "materiaux", "composer", "domaines", "concerner"]
+
 
 def populate_database(dataset_path=r'dataset', verbose=0):
     """Populate all the database in the order :
-    - metiers
-    - villes
-    - musees
-    - artistes
-    - oeuvres
-    - matériaux
-    - domaine
-    - creation_oeuvres
-    - composer
-    - concerner
+    - dao.TABLES_NAME
 
     Args:
         dataset_path (str, optional): the dataset path, path where all CSV files are store. Defaults to r'dataset'.
@@ -261,13 +240,12 @@ def populate_database(dataset_path=r'dataset', verbose=0):
     short_name = "populate_database"
     tot = 0
     
-    for table_name in tqdm(_datas_table_names, desc=f"[{short_name}]", disable=(verbose<1)):
-        function = _datas_populate_functions.get(table_name, None)
-        nb = function(dataset_path=dataset_path, verbose=verbose)
-        if verbose>0: print(f"[{short_name}]\tINFO : {nb} {table_name} inserted")
+    for table_name in tqdm(TABLES_NAME, desc=f"[{short_name}]", disable=(verbose<1)):
+        nb = globals()["populate_"+table_name](dataset_path=dataset_path, verbose=verbose)
+        if verbose>0: print(f"[{short_name}] \tINFO : {nb} {table_name} inserted")
         tot += nb
 
-    if verbose>0: print(f"[{short_name}]\tINFO : {tot} datas inserted (all table included)")
+    if verbose>0: print(f"[{short_name}] \tINFO : {tot} datas inserted (all table included)")
     return tot
 
 # ----------------------------------------------------------------------------------
@@ -306,16 +284,16 @@ def _populate_df_generic(df, table_name, verbose=0):
         
     dbConnection =create_engine(verbose=verbose)
     try:
-        nb_pop = df.to_sql(name=table_name.lower(), con=dbConnection, if_exists='fail', index=False, chunksize=10)
+        nb_pop = df.to_sql(name=table_name.lower(), con=dbConnection, if_exists='replace', index=False, chunksize=10)
     except mysql.connector.IntegrityError as error:
         nb_pop = 0
         if verbose > 0:
-            print(f"[cojoden_dao > {short_name}] WARNING : la table {table_name} est déjà peuplée.\n\t- {error}")
+            print(f"[{short_name}] WARNING : la table {table_name} est déjà peuplée.\n\t- {error}")
     except Exception as error:
         if  "IntegrityError" in str(error):
             nb_pop = 0
             if verbose > 0:
-                print(f"[cojoden_dao > {short_name}] WARNING : la table {table_name} est déjà peuplée.\n\t- {error}")
+                print(f"[{short_name}] WARNING : la table {table_name} est déjà peuplée.\n\t- {error}")
         else:
             raise error
     return nb_pop
@@ -323,28 +301,33 @@ def _populate_df_generic(df, table_name, verbose=0):
 # ----------------------------------------------------------------------------------
 #  %%                      TEST
 # ----------------------------------------------------------------------------------
+# /!\ le nombre de lignes affichées dans le plugin VScode est faux, il est préférable de vérifier via les requêtes SQL.
 _datas_populate_expected = {
-    "metiers"   :    229,
-    "villes"    :    410,
-    "musees"    :    482,
-    "auteurs"   :  46235,
-    "oeuvres"   : 605157,
-    "creer"     : 639497,
-    "materiaux" :   8462,
-    "composer"  :1247151,
-    "domaines"  :    142,
-    "concerner" : 868730,
+    "metier"   :    229,    # OK
+    "ville"    :    410,    # OK
+    "domaine"  :    142,    # OK
+    "musee"    :    482,    # OK
+    "materiaux_technique" :   8462, # OK
+    "artiste"   :  46235,   # 2 324 are missing in BDD => L'affichage dans VS code est faux, il y a bien 46235 en BDD
+    "oeuvre"   : 605157,    # 16 510 de plus  in BDD ??? => 605157 en BDD
+    "composer"  :1247151,   # 3 063 en moins in BDD => 1247151
+    "creer"     : 639497,   # 2 062 en moins in BDD => 639497
+    "concerner" : 868730,   # 625 828 en moins in DSS => 868730
 }
 
 def _test_populate(dataset_path, verbose=1):
     tot = populate_database(dataset_path=dataset_path, verbose=verbose)
     assert tot == sum(_datas_populate_expected.values())
+    _test_check_nb_data(verbose=verbose)
 
-def _test_populate_table(table_name,dataset_path, verbose=1):
-    function = _datas_populate_functions.get(table_name, None)
-    assert function is not None, f"[FAIL] No function for {table_name}"
-    nb = function(dataset_path=dataset_path, verbose=verbose)
-    assert nb == _datas_populate_expected.get(table_name, 0), f"[FAIL] {table_name} : {nb} rows inserted where {_datas_populate_expected.get(table_name, 0)} expected"
+
+def _test_check_nb_data(verbose=1):
+    # Vérification du nombre de données
+    for table_name in tqdm(TABLES_NAME, desc=f'[check_nb_data]'):
+        sql = f'SELECT COUNT(*) FROM {table_name};'
+        res = executer_sql(sql=sql, verbose=verbose)
+        assert res is not None and len(res)>0 and len(res[0])>0
+        assert res[0][0] == _datas_populate_expected.get(table_name, 0)
 
 
 # ----------------------------------------------------------------------------------
@@ -352,23 +335,17 @@ def _test_populate_table(table_name,dataset_path, verbose=1):
 # ----------------------------------------------------------------------------------
 if __name__ == '__main__':
     dataset_path=r'C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance\dataset'
-    # populate_metiers(dataset_path=dataset_path, verbose=verbose)
-    # populate_villes(dataset_path=dataset_path, verbose=verbose)
-    # populate_musees(dataset_path=dataset_path, verbose=verbose)
-    # populate_artistes(dataset_path=dataset_path, verbose=verbose)
-    # populate_oeuvres(dataset_path=dataset_path, verbose=verbose)
-    # populate_creation_oeuvres(dataset_path=dataset_path, verbose=verbose)
-    # populate_materiaux(dataset_path=dataset_path, verbose=verbose)
+    # populate_metier(dataset_path=dataset_path, verbose=verbose)
+    # populate_ville(dataset_path=dataset_path, verbose=verbose)
+    # populate_musee(dataset_path=dataset_path, verbose=verbose)
+    # populate_artiste(dataset_path=dataset_path, verbose=verbose)
+    # populate_oeuvre(dataset_path=dataset_path, verbose=verbose)
+    # populate_creer(dataset_path=dataset_path, verbose=verbose)
+    # populate_materiaux_technique(dataset_path=dataset_path, verbose=verbose)
     # populate_composer(dataset_path=dataset_path, verbose=verbose)
     # populate_domaine(dataset_path=dataset_path, verbose=verbose)
     # populate_concerner(dataset_path=dataset_path, verbose=verbose)
-
-    
-
-    _datas_table_names = ["metiers" ,"villes", "musees" , "auteurs", "oeuvres", "creer", "materiaux", "composer", "domaines", "concerner"]
-    for table_name in tqdm(_datas_table_names, desc="TEST populate_table"):
-        _test_populate_table(table_name=table_name,dataset_path=dataset_path)
-        
-    # _test_populate(dataset_path=dataset_path)
+    _test_populate(dataset_path=dataset_path, verbose=1)
+    _test_check_nb_data(verbose=1)
     
 

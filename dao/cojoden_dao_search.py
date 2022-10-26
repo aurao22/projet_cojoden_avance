@@ -1,8 +1,6 @@
 
 # %% import
 import pandas as pd
-import mysql.connector
-from os.path import join, exists
 import sys
 sys.path.append(r"C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance")
 from dao.cojoden_dao import executer_sql

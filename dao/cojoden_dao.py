@@ -1,6 +1,5 @@
 
 # %% import
-from tabnanny import verbose
 import mysql.connector
 import sqlalchemy as sa
 import pandas as pd
@@ -32,14 +31,14 @@ db_name = DENV['db_name']
 db_client="mysql"
 
 # Les tables sont dans l'ordre de création
-table_names = ["metier","ville", "domaine","artiste",  "musee", "materiaux_technique", "oeuvre", "composer", "creer", "concerner"]
+TABLES_NAME = ["metier","ville", "domaine","artiste",  "musee", "materiaux_technique", "oeuvre", "composer", "creer", "concerner"]
 
 # ----------------------------------------------------------------------------------
 # %%                        DATABASE STATUS
 # ----------------------------------------------------------------------------------
 def database_missing_tables(verbose=0):
     short_name = "database_missing_tables"
-    missing_table = table_names.copy()
+    missing_table = TABLES_NAME.copy()
     try:
         res = executer_sql(sql="SHOW TABLES FROM cojoden_avance;", verbose=verbose)
         
@@ -286,7 +285,7 @@ def _create_table_composer(verbose=0):
         REFERENCES `OEUVRE` (`ref`),
     CONSTRAINT `fk_composer_matiere`
         FOREIGN KEY (`materiaux`)
-        REFERENCES `materieaux_technique` (`id`)
+        REFERENCES `materiaux_technique` (`id`)
     )
     ENGINE=MYISAM;
     """, verbose=verbose)
@@ -336,18 +335,6 @@ def _create_table_concerner(verbose=0):
 # ----------------------------------------------------------------------------------
 # %%                        DATABASE RESET
 # ----------------------------------------------------------------------------------
-def reset_database_old(verbose=0):
-    short_name = "reset_database"
-    for i in range(len(table_names)-1, 0, -1):
-        table_name = table_names[i]
-        sql = f"DROP TABLE IF EXISTS {table_name}; "
-        executer_sql(sql=sql, verbose=verbose)
-        if verbose>0:
-            print(f"[{short_name}] \tINFO : {table_name} \t---> remove")
-    initialize_data_base()
-    if verbose>0:
-        print(f"[{short_name}] \tINFO : database initialise")
-
 def reset_database(verbose=0):
     try:
         # Prise en compte du cas où la BDD n'existe pas
