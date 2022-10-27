@@ -16,3 +16,18 @@ Extraction RAF :
 	- Insertion en BDD d'une oeuvre (oeuvre par oeuvre)
 	
 	
+SELECT oeuvre.ref, oeuvre.titre, oeuvre.type, oeuvre.annee_debut, oeuvre.inscriptions, oeuvre.texte FROM oeuvre
+WHERE oeuvre.ref in (
+  SELECT creer.oeuvre
+  FROM metier, creer  
+  WHERE creer.role = metier.metier_search  
+  AND creer.oeuvre = oeuvre.ref 
+  AND metier_search LIKE '%peintre%')
+  
+AND  oeuvre.ref in (
+  SELECT composer.oeuvre
+  FROM materiaux_technique, composer
+  WHERE composer.materiaux = materiaux_technique.id  
+  AND mat_search LIKE '%agate%')
+  
+LIMIT 100;
