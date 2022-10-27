@@ -1,13 +1,31 @@
 
+# %% doc
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+""" Module to export the cojoden database in CSV files
+
+Project: Cojoden avance
+=======
+
+Usage:
+======
+    python cojoden_dao_export_csv.py
+"""
+__authors__     = ("Aurélie RAOUL")
+__contact__     = ("aurelie.raoul@yahoo.fr")
+__copyright__   = "MIT"
+__date__        = "2022-10-01"
+__version__     = "1.0.0"
+
 # %% import
-import pandas as pd
-import mysql.connector
 from os.path import join, exists
 import sys
+import pandas as pd
+import mysql.connector
+from tqdm import tqdm
 sys.path.append(r"C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance")
 from data_preprocessing.cojoden_functions import convert_df_string_to_search_string
 from dao.cojoden_dao import create_engine, TABLES_NAME
-from tqdm import tqdm
 
 # ----------------------------------------------------------------------------------
 # %% EXPORT DE LA BDD

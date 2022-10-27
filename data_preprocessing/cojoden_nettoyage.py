@@ -1,3 +1,21 @@
+# %% doc
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+""" Module to clean the input dataset
+
+Project: Cojoden avance
+=======
+
+Usage:
+======
+    python cojoden_nettoyage.py
+"""
+__authors__     = ("Aurélie RAOUL")
+__contact__     = ("aurelie.raoul@yahoo.fr")
+__copyright__   = "MIT"
+__date__        = "2022-10-01"
+__version__     = "1.0.0"
+
 # %% import
 from os import getcwd
 from os.path import join

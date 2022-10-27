@@ -1,7 +1,13 @@
--- Model: Cojoden avance
--- Version: 1.0
+-- Script with all SQL database creation request
+-- 
 -- Project: Cojoden avance
--- Author: Aurélie RAOUL
+-- =======
+-- 
+-- __authors__     = ("Aurélie RAOUL")
+-- __contact__     = ("aurelie.raoul@yahoo.fr")
+-- __copyright__   = "MIT"
+-- __date__        = "2022-10-01"
+-- __version__     = "1.0.0"
 drop database if exists cojoden_avance;
 
 create database cojoden_avance;

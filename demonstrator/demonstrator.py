@@ -1,3 +1,21 @@
+# %% doc
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+""" The project demonstrator
+
+Project: Cojoden avance
+=======
+
+Usage:
+======
+    python demonstrator.py
+"""
+__authors__     = ("Aurélie RAOUL")
+__contact__     = ("aurelie.raoul@yahoo.fr")
+__copyright__   = "MIT"
+__date__        = "2022-10-01"
+__version__     = "1.0.0"
+
 # %% import
 import sys
 sys.path.append(r"C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance")
