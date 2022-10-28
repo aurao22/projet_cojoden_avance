@@ -94,10 +94,10 @@ JOIN_TABLE = {
 # %% RECHERCHE EN BDD -- CIBLEE
 # ----------------------------------------------------------------------------------
 # %% sql_oeuvre_domaine
-def sql_oeuvre_domaine(domaine, search_strategie='AND', search_level=1, cols=["oeuvre"], verbose=0):
+def sql_oeuvre_domaine(value, search_strategie='AND', search_level=1, cols=["oeuvre"], verbose=0):
     short_name = "sql_oeuvre_domaine"
     sql_sub_select = ""
-    if domaine is not None:
+    if value is not None:
 
         for i in range(0, len(cols)):
             if i > 0:
@@ -123,10 +123,11 @@ def sql_oeuvre_domaine(domaine, search_strategie='AND', search_level=1, cols=["o
                             sql_sub_select += f" {search_strategie} "
                         else:
                             sql_sub_select += f" WHERE "
-                        search_value = domaine
+                        search_value = value
                         if "search" in col:
                             search_value = convert_string_to_search_string(search_value)
                         sql_sub_select += f"`{col}` LIKE '%{search_value}%' "
+                        nb_cond += 1
     sql_sub_select = sql_sub_select.replace("\n", "")
     sql_sub_select = re.sub(' +', ' ', sql_sub_select)
     if verbose>1:
@@ -249,6 +250,7 @@ def sql_oeuvre_artiste(value, role=None, search_strategie='AND', search_level=1,
                         if "search" in col:
                             search_value = convert_string_to_search_string(search_value)
                         sql_sub_select += f"`{col}` LIKE '%{search_value}%' "
+                        nb_cond += 1
     
     sql_sub_select = sql_sub_select.replace("\n", "")
     sql_sub_select = re.sub(' +', ' ', sql_sub_select)
@@ -307,7 +309,10 @@ def search_musees(ville=None, oeuvre=None, musee=None, metier=None, materiaux=No
         else:
             sql_where += f" {search_strategie}"
         search_value = convert_string_to_search_string(ville)    
-        sql_where += f" ville_search LIKE '%{search_value}%' "
+        sql_where += f" (ville_search LIKE '%{search_value}%'"
+        if search_level>1:
+            sql_where += f" OR departement LIKE '%{search_value}%' OR region1 LIKE '%{search_value}%'"
+        sql_where += f") "
         nb_cond += 1
 
     if oeuvre is not None or type_oeuvre is not None:
@@ -431,12 +436,6 @@ def search_multicriteria(ville=None, oeuvre=None, musee=None, metier=None, mater
 
     res = executer_sql(sql=sql, verbose=verbose)
     return res
-
-
-
-
-
-    
     
 
 #  %% search_on_table
@@ -730,7 +729,7 @@ def _test_sql_oeuvre_domaine(verbose=1):
     }
     
     for domaine, expected in tqdm(to_test.items(), desc="[TEST sql_oeuvre_domaine]"):
-        sql = sql_oeuvre_domaine(domaine=domaine, cols=["oeuvre"], verbose=verbose)
+        sql = sql_oeuvre_domaine(value=domaine, cols=["oeuvre"], verbose=verbose)
         assert sql == expected
 
 def _test_sql_oeuvre_materiaux(verbose=1):
@@ -805,21 +804,23 @@ def _test_search_musees(verbose=1):
 
     to_test={ 
         ('ville',   'oeuvre',   'musee',    'metier',   'materiaux',    'domaine',  'artiste',  'type_oeuvre',  'search_strategie', 'search_level') :45,
-        # Matériaux à éviter => déclenche des timeout
-        #('BRIEUC',  'RAOUL',    None,       'peintre',  'agate',        None,       None,       None,           'AND',              1)              :0, # Check
-        #('BRIEUC',  'GOULVEN',  None,       'peintre',  'agate',        None,       None,       None,           'AND',              1)              :0,
-        #('BRIEUC',  None,       None,       None,       'agate',        None,       None,       None,           'AND',              1)              :1, # Check
+        # ('PARIS',   'RAOUL',    None,        'peintre',  None,          None,       None,       None,           'AND',              1)              :1,
+        # ('PARIS',   None,       None,        None,       None,          None,       'RAOUL',    None,           'AND',              1)              :1,
+        ('BRETAGNE',None,       None,        None,       None,          None,       'RAOUL',    None,           'AND',              2)              :15,
         ('BREST',   None,       "art",      'peintre',  None,           None,       None,       None,           'AND',              1)               :1, # Check
         ('BRIEUC',  'RAOUL',    None,       'peintre',  None,           None,       None,       None,           'AND',              1)               :0, # Check
         ('BRIEUC',  None,       None,       None,       None,           None,       None,       None,           'AND',              1)              :1, # Check
-        ('BRIEUC',  None,       None,       'peintre',  None,           None,       None,       None,           'AND',              1)              :1,
+        ('BRETAGNE',  None,     None,       'peintre',  None,           None,       None,       None,           'AND',              1)              :0,
         ('BRIEUC',  None,       None,       None,       None,           None,       None,       None,           'AND',              1)              :1, # Check
         ('LANNION', None,       None,       None,       None,           None,       None,       None,           'AND',              1)              :0, # Check
-        ('PARIS',  None,       None,        'peintre',  None,           None,       None,       None,           'AND',              1)              :1,
-        ('PARIS',  None,       None,        None,       None,           'afrique',  None,       None,           'AND',              1)              :1,
-        ('PARIS',  None,       None,        None,       None,           'basque',   None,       None,           'AND',              1)              :1,
-        ('PARIS',  None,       None,        None,       "acier",        None,       None,       None,           'AND',              1)              :1,
-        ('PARIS',  None,       None,        None,       "albâtre",      None,       None,       None,           'AND',              1)              :1,
+        ('PARIS',   None,       None,        None,       None,          'afrique',  None,       None,           'AND',              1)              :1,
+        ('PARIS',   None,       None,        None,       None,          'basque',   None,       None,           'AND',              1)              :1,
+        ('PARIS',   None,       None,        None,       "acier",       None,       None,       None,           'AND',              1)              :1,
+        ('PARIS',   None,       None,        None,       "albâtre",     None,       None,       None,           'AND',              1)              :1,
+        # Matériaux à éviter => déclenche des timeout, => augmentation du timeout par défaut
+        #('BRIEUC',  'RAOUL',    None,       'peintre',  'agate',        None,       None,       None,           'AND',              1)              :0, # Check
+        #('BRIEUC',  'GOULVEN',  None,       'peintre',  'agate',        None,       None,       None,           'AND',              1)              :0,
+        #('BRIEUC',  None,       None,       None,       'agate',        None,       None,       None,           'AND',              1)              :1, # Check
     }
     limit=100
 
