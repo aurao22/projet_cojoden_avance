@@ -20,9 +20,11 @@ __version__     = "1.0.0"
 # %% import
 import pandas as pd
 import sys
+import re
 
 sys.path.append(r"C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance")
 from dao.cojoden_dao import executer_sql
+from data_preprocessing.cojoden_functions import convert_string_to_search_string
 from tqdm import tqdm
 
 # ----------------------------------------------------------------------------------
@@ -32,30 +34,25 @@ from tqdm import tqdm
 LEVEL_COLS = {  
                 'ville': {
                             1 : ["ville_search"],
-                            2 : ["ville"],
-                            3 : ["departement", "region1"],
+                            2 : ["departement", "region1"],
                         },
                 'oeuvre': {
                             1 : ["titre"],
                             2 : ["inscriptions", "texte"],
-                            3 : ["type", "domaine"],
+                            3 : ["type"],
                         },
                 'metier':{
                             1 : ["metier_search"],
-                            2 : ["metier"],
                 },
                 'materiaux_technique':{
                             1 : ["mat_search"],
-                            2 : ["materiaux_technique"],
                 },
                 'domaine':{
                             1 : ["dom_search"],
-                            2 : ["domaine"],
                 },
                 'artiste':{
                             1 : ["nom_search"],
-                            2 : ["nom_naissance"],
-                            3 : ["dit"],
+                            2 : ["dit"],
                         },
     }
 
@@ -94,13 +91,154 @@ JOIN_TABLE = {
 }
 
 # ----------------------------------------------------------------------------------
-# %% RECHERCHE EN BDD
+# %% RECHERCHE EN BDD -- CIBLEE
+# ----------------------------------------------------------------------------------
+# %% sql_oeuvre_domaine
+def sql_oeuvre_domaine(domaine, search_strategie='AND', search_level=1, cols=["oeuvre"], verbose=0):
+    short_name = "sql_oeuvre_domaine"
+    sql_sub_select = ""
+    if domaine is not None:
+
+        for i in range(0, len(cols)):
+            if i > 0:
+                sql_sub_select += f", "
+            sql_sub_select += f"{cols[i]}"
+
+        sql_sub_select = f"""SELECT {sql_sub_select} 
+                            FROM concerner 
+                            INNER JOIN domaine
+                            ON domaine.id = concerner.domaine
+                            """
+        
+        for level, cols in LEVEL_COLS.get("domaine", {}).items():
+            if level <= search_level:
+                for col in cols:
+                    if "domaine" != col:
+                        sql_sub_select += f" {search_strategie} "
+                        search_value = domaine
+                        if "search" in col:
+                            search_value = convert_string_to_search_string(search_value)
+                        sql_sub_select += f"{col} LIKE '%{search_value}%' "
+    sql_sub_select = sql_sub_select.replace("\n", "")
+    sql_sub_select = re.sub(' +', ' ', sql_sub_select)
+    if verbose>1:
+        print(f'[{short_name}] \tDEBUG : domaine => {sql_sub_select}')
+    return sql_sub_select
+
+# %% sql_oeuvre_materiaux
+def sql_oeuvre_materiaux(value, search_strategie='AND', search_level=1, cols=["oeuvre"], verbose=0):
+    short_name = "sql_oeuvre_materiaux"
+    sql_sub_select = ""
+    if value is not None:
+
+        for i in range(0, len(cols)):
+            if i > 0:
+                sql_sub_select += f", "
+            sql_sub_select += f"{cols[i]}"
+
+        sql_sub_select = f"""SELECT {sql_sub_select} 
+                            FROM composer 
+                            INNER JOIN materiaux_technique
+                            ON materiaux_technique.id = composer.materiaux
+                            """
+        
+        for level, cols in LEVEL_COLS.get("materiaux_technique", {}).items():
+            if level <= search_level:
+                for col in cols:
+                    if "materiaux_technique" != col:
+                        sql_sub_select += f" {search_strategie} "
+                    
+                        search_value = value
+                        if "search" in col:
+                            search_value = convert_string_to_search_string(search_value)
+                        sql_sub_select += f"{col} LIKE '%{search_value}%' "
+    sql_sub_select = sql_sub_select.replace("\n", "")
+    sql_sub_select = re.sub(' +', ' ', sql_sub_select)
+    if verbose>1:
+        print(f'[{short_name}] \tDEBUG : materiaux_technique => {sql_sub_select}')
+    return sql_sub_select
+
+# %% sql_oeuvre_oeuvre
+def sql_oeuvre_oeuvre(value, type_oeuvre=None, search_strategie='AND', search_level=1, cols=["ref"], verbose=0):
+    short_name = "sql_oeuvre_oeuvre"
+    sql_sub_select = ""
+    if value is not None:
+
+        for i in range(0, len(cols)):
+            if i > 0:
+                sql_sub_select += f", "
+            sql_sub_select += f"{cols[i]}"
+
+        sql_sub_select = f"""SELECT {sql_sub_select} FROM oeuvre """
+        nb_cond = 0
+        for level, cols in LEVEL_COLS.get("oeuvre", {}).items():
+            if level <= search_level:
+                for col in cols:
+                    if nb_cond > 0:
+                        sql_sub_select += f" {search_strategie} "
+                    else : 
+                        sql_sub_select += f" WHERE "
+                    sql_sub_select += f"{col} LIKE '%{value}%' "
+    
+    if type_oeuvre is not None:
+        if value is not None:
+            sql_sub_select += f" {search_strategie} "
+        else:
+            sql_sub_select += f" WHERE "
+        sql_sub_select += f" oeuvre.type LIKE '%{type_oeuvre}%' "
+
+    sql_sub_select = sql_sub_select.replace("\n", "")
+    sql_sub_select = re.sub(' +', ' ', sql_sub_select)
+    if verbose>1:
+        print(f'[{short_name}] \tDEBUG : oeuvres => {sql_sub_select}')
+    return sql_sub_select
+
+# %% sql_oeuvre_artiste
+def sql_oeuvre_artiste(value, role=None, search_strategie='AND', search_level=1, cols=["oeuvre"], verbose=0):
+    short_name = "sql_oeuvre_artiste"
+    sql_sub_select = ""
+    if value is not None or role is not None:
+
+        for i in range(0, len(cols)):
+            if i > 0:
+                sql_sub_select += f", "
+            sql_sub_select += f"{cols[i]}"
+
+        sql_sub_select = f"SELECT {sql_sub_select}  FROM creer  INNER JOIN artiste ON artiste.id = creer.artiste "
+        nb_cond = 0
+
+        if role is not None:
+            search_value = convert_string_to_search_string(role)
+            sql_sub_select += f" WHERE role LIKE '%{search_value}%' "
+            nb_cond = 1
+
+        if value is not None:
+            for level, cols in LEVEL_COLS.get("artiste", {}).items():
+                if level <= search_level:
+                    for col in cols:
+                        if nb_cond > 0:
+                            sql_sub_select += f" {search_strategie} "
+                        else : 
+                            sql_sub_select += f" WHERE "
+                        search_value = value
+                        if "search" in col:
+                            search_value = convert_string_to_search_string(search_value)
+                        sql_sub_select += f"{col} LIKE '%{search_value}%' "
+    
+    sql_sub_select = sql_sub_select.replace("\n", "")
+    sql_sub_select = re.sub(' +', ' ', sql_sub_select)
+    if verbose>1:
+        print(f'[{short_name}] \tDEBUG : oeuvres => {sql_sub_select}')
+    return sql_sub_select
+
+# ----------------------------------------------------------------------------------
+# %% RECHERCHE EN BDD -- MULTICRITERES
 # ----------------------------------------------------------------------------------
 #  %% search_multicriteria
 def search_multicriteria(ville=None, oeuvre=None, musee=None, metier=None, materiaux=None, domaine=None, artiste=None, type_oeuvre=None, search_strategie='AND', search_level=1, limit=None, verbose=0):
     short_name = "search_multicriteria"
     sql_end = ""
-    slq_begin = ""
+    sql_begin = ""
     sql_from = " FROM "
     nb_cond = 0
 
@@ -125,9 +263,9 @@ def search_multicriteria(ville=None, oeuvre=None, musee=None, metier=None, mater
             elif verbose>0:
                 print(f'[{short_name}] \tWARN : {table_name} : condition {value} -- NOT ADDED')
             if len(sub_sql_begin)>0:
-                if len(slq_begin)>0:
-                    slq_begin += ","
-                slq_begin += " "+sub_sql_begin
+                if len(sql_begin)>0:
+                    sql_begin += ","
+                sql_begin += " "+sub_sql_begin
                 if verbose>1:
                     print(f'[{short_name}] \tDEBUG : {table_name} : cols {sub_sql_begin} -- ADDED')
             elif verbose>1:
@@ -154,7 +292,7 @@ def search_multicriteria(ville=None, oeuvre=None, musee=None, metier=None, mater
                 sql_from += ", "
         sql_from += t
 
-    sql = "SELECT "+ slq_begin + " " + sql_from + " " +sql_where+ " " + sql_end
+    sql = "SELECT "+ sql_begin + " " + sql_from + " " +sql_where+ " " + sql_end
     if limit is not None:
         sql += f" LIMIT {limit}"
 
@@ -163,6 +301,7 @@ def search_multicriteria(ville=None, oeuvre=None, musee=None, metier=None, mater
 
     res = executer_sql(sql=sql, verbose=verbose)
     return res
+    
     
 
 #  %% search_on_table
@@ -200,20 +339,20 @@ def search_on_table(table_name, search_str, search_level=1, increase_level=True,
 # ----------------------------------------------------------------------------------
 def _create_cond(table_name, value, nb_cond=0, search_strategie='AND', search_level=1, verbose=0):
     sql = ""
-    slq_begin = ""
+    sql_begin = ""
     if value is not None and len(value)>0:
         for level, cols in LEVEL_COLS.get(table_name, {}).items():
             if level <= search_level:
                 for col in cols:
                     if nb_cond>0:
                         sql+= f"{search_strategie} "            
-                        slq_begin += ','
+                        sql_begin += ','
                     sql+= f"{col} LIKE '%{value}%' "
                     nb_cond += 1
                     # TODO ce ne sont pas ces colonnes qu'il faut récupérer
-                    slq_begin = SEARCH_RESULT_COLS_BY_TABLE.get(table_name, "")
+                    sql_begin = SEARCH_RESULT_COLS_BY_TABLE.get(table_name, "")
 
-    return (sql, nb_cond, slq_begin)
+    return (sql, nb_cond, sql_begin)
 
 def _build_join(join_table, verbose=0):
     ever_join = set()
@@ -444,11 +583,84 @@ def _test_build_join(verbose=1):
         res = _build_join(to_join, verbose=0)
         assert res == expected
 
+def _test_sql_oeuvre_domaine(verbose=1):
+    to_test = {
+        "afrique"   :"SELECT oeuvre FROM concerner INNER JOIN domaine ON domaine.id = concerner.domaine AND dom_search LIKE '%AFRIQUE%' ", 
+        "amérique"  :"SELECT oeuvre FROM concerner INNER JOIN domaine ON domaine.id = concerner.domaine AND dom_search LIKE '%AMERIQUE%' ",
+        "céramique" :"SELECT oeuvre FROM concerner INNER JOIN domaine ON domaine.id = concerner.domaine AND dom_search LIKE '%CERAMIQUE%' ",
+        "broderie"  :"SELECT oeuvre FROM concerner INNER JOIN domaine ON domaine.id = concerner.domaine AND dom_search LIKE '%BRODERIE%' ",
+        "basque"    :"SELECT oeuvre FROM concerner INNER JOIN domaine ON domaine.id = concerner.domaine AND dom_search LIKE '%BASQUE%' ",
+        "épigraphie":"SELECT oeuvre FROM concerner INNER JOIN domaine ON domaine.id = concerner.domaine AND dom_search LIKE '%EPIGRAPHIE%' ",
+        "miniature" :"SELECT oeuvre FROM concerner INNER JOIN domaine ON domaine.id = concerner.domaine AND dom_search LIKE '%MINIATURE%' ",
+    }
+    
+    for domaine, expected in tqdm(to_test.items(), desc="[TEST sql_oeuvre_domaine]"):
+        sql = sql_oeuvre_domaine(domaine=domaine, cols=["oeuvre"], verbose=verbose)
+        assert sql == expected
+
+def _test_sql_oeuvre_materiaux(verbose=1):
+    to_test = {
+        "papier baryté"   :"SELECT oeuvre FROM composer INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux AND mat_search LIKE '%PAPIER BARYTE%' ", 
+        "verre"           :"SELECT oeuvre FROM composer INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux AND mat_search LIKE '%VERRE%' ", 
+        "acajou"          :"SELECT oeuvre FROM composer INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux AND mat_search LIKE '%ACAJOU%' ", 
+        "acétate"         :"SELECT oeuvre FROM composer INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux AND mat_search LIKE '%ACETATE%' ", 
+        "acier"           :"SELECT oeuvre FROM composer INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux AND mat_search LIKE '%ACIER%' ", 
+        "albâtre"         :"SELECT oeuvre FROM composer INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux AND mat_search LIKE '%ALBATRE%' ", 
+    }
+    
+    for domaine, expected in tqdm(to_test.items(), desc="[TEST sql_oeuvre_materiaux]"):
+        sql = sql_oeuvre_materiaux(value=domaine, cols=["oeuvre"], verbose=verbose)
+        assert sql == expected
+
+def _test_sql_oeuvre_oeuvre(verbose=1):
+    to_test = {
+        ("hugues", "violon")     :"SELECT ref FROM oeuvre WHERE titre LIKE '%hugues%' AND oeuvre.type LIKE '%violon%' ", 
+        ("hugues", "tableau")    :"SELECT ref FROM oeuvre WHERE titre LIKE '%hugues%' AND oeuvre.type LIKE '%tableau%' ", 
+        ("hugues", None)         :"SELECT ref FROM oeuvre WHERE titre LIKE '%hugues%' ",  
+        ("goulven", None)        :"SELECT ref FROM oeuvre WHERE titre LIKE '%goulven%' ",  
+        ("goulven", "encre")     :"SELECT ref FROM oeuvre WHERE titre LIKE '%goulven%' AND oeuvre.type LIKE '%encre%' ",  
+        ("raoul", "violon")      :"SELECT ref FROM oeuvre WHERE titre LIKE '%raoul%' AND oeuvre.type LIKE '%violon%' ",  
+        ("raoul", "buste")       :"SELECT ref FROM oeuvre WHERE titre LIKE '%raoul%' AND oeuvre.type LIKE '%buste%' ",  
+        ("raoul", "tableau")     :"SELECT ref FROM oeuvre WHERE titre LIKE '%raoul%' AND oeuvre.type LIKE '%tableau%' ",  
+    }
+    
+    for (value, type_oeuvre), expected in tqdm(to_test.items(), desc="[TEST sql_oeuvre_oeuvre]"):
+        sql = sql_oeuvre_oeuvre(value=value, type_oeuvre=type_oeuvre, verbose=verbose)
+        assert sql == expected
+
+
+def _test_sql_oeuvre_artiste(verbose=1):
+    to_test = {
+        ("hugues", "sculpteur")     :"SELECT oeuvre FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE role LIKE '%SCULPTEUR%' AND nom_search LIKE '%HUGUES%' ", 
+        ("hugues", "PEINTRE")       :"SELECT oeuvre FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE role LIKE '%PEINTRE%' AND nom_search LIKE '%HUGUES%' ", 
+        ("hugues", "ORFEVRE")       :"SELECT oeuvre FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE role LIKE '%ORFEVRE%' AND nom_search LIKE '%HUGUES%' ", 
+        ("hugues", None)            :"SELECT oeuvre FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE nom_search LIKE '%HUGUES%' ", 
+        ("roméo", None)             :"SELECT oeuvre FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE nom_search LIKE '%ROMEO%' ", 
+        ("goulven", None)           :"SELECT oeuvre FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE nom_search LIKE '%GOULVEN%' ", 
+        ("raoul", None)             :"SELECT oeuvre FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE nom_search LIKE '%RAOUL%' ", 
+        ("raoul", "peintre")        :"SELECT oeuvre FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE role LIKE '%PEINTRE%' AND nom_search LIKE '%RAOUL%' ", 
+        ("raoul", "GRAVEUR")        :"SELECT oeuvre FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE role LIKE '%GRAVEUR%' AND nom_search LIKE '%RAOUL%' ", 
+        ("raoul", "sculpteur")      :"SELECT oeuvre FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE role LIKE '%SCULPTEUR%' AND nom_search LIKE '%RAOUL%' ", 
+        ("raoul", "illustrateur")   :"SELECT oeuvre FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE role LIKE '%ILLUSTRATEUR%' AND nom_search LIKE '%RAOUL%' ", 
+        ("raoul", "ARCHITECTE")     :"SELECT oeuvre FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE role LIKE '%ARCHITECTE%' AND nom_search LIKE '%RAOUL%' ", 
+        ("raoul", "dessinateur")    :"SELECT oeuvre FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE role LIKE '%DESSINATEUR%' AND nom_search LIKE '%RAOUL%' ", 
+        ("raoul", "AQUARELLISTE")   :"SELECT oeuvre FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE role LIKE '%AQUARELLISTE%' AND nom_search LIKE '%RAOUL%' ", 
+        ("raoul", "createur")       :"SELECT oeuvre FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE role LIKE '%CREATEUR%' AND nom_search LIKE '%RAOUL%' ", 
+    }
+    
+    for (value, role), expected in tqdm(to_test.items(), desc="[TEST sql_oeuvre_artiste]"):
+        sql = sql_oeuvre_artiste(value=value, role=role, verbose=verbose)
+        assert sql == expected
+
 # ----------------------------------------------------------------------------------
 # %%                       MAIN
 # ----------------------------------------------------------------------------------
 if __name__ == '__main__':
     verbose = 1
+    _test_sql_oeuvre_artiste(verbose=verbose)
+    _test_sql_oeuvre_oeuvre(verbose=verbose)
+    _test_sql_oeuvre_materiaux(verbose=verbose)
+    _test_sql_oeuvre_domaine(verbose=verbose)
     _test_join_for_table(verbose=verbose)
     _test_build_join(verbose=verbose)
     _test_search_multicriteria(verbose=verbose)

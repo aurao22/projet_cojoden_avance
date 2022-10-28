@@ -49,3 +49,21 @@ AND  oeuvre.ref in (
   AND mat_search LIKE '%agate%')
   
 LIMIT 100;
+
+SELECT distinct(domaine) FROM domaine LIMIT 100;
+
+
+SELECT distinct(materiaux_technique) FROM materiaux_technique LIMIT 100;
+
+SELECT count(materiaux_technique) as nb, materiaux_technique
+FROM materiaux_technique
+GROUP BY materiaux_technique
+ORDER BY nb DESC;
+
+
+SELECT count(distinct(type)) as nb, type
+FROM oeuvre
+GROUP BY type
+ORDER BY nb DESC;
+
+SELECT distinct(role) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE nom_search LIKE '%RAOUL%' AND role is not NULL;

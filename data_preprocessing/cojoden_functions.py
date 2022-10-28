@@ -33,7 +33,7 @@ def convert_string_to_search_string(input):
     to_replace_to_reverse = get_replacement_car_for_specials_car()
     for replace_val, to_replace_cars in to_replace_to_reverse.items():
         for to_replace in to_replace_cars:
-            output = output.replace(to_replace, replace_val, regex=False)
+            output = output.replace(to_replace, replace_val)
     return output
 
 #%% convert_df_string_to_search_string
