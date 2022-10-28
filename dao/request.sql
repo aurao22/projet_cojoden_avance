@@ -67,3 +67,19 @@ GROUP BY type
 ORDER BY nb DESC;
 
 SELECT distinct(role) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE nom_search LIKE '%RAOUL%' AND role is not NULL;
+
+
+SELECT museo, nom, ville.ville, latitude, longitude, count(ref) as nb_oeuvres, count(artiste) as nb_artistes
+FROM musee
+inner join ville
+on ville.id = musee.ville
+
+inner join oeuvre
+on museo = lieux_conservation
+
+inner join creer
+on ref = creer.oeuvre
+
+GROUP BY museo
+ORDER BY nb_oeuvres DESC
+LIMIT 100;
