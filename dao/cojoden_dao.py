@@ -135,7 +135,7 @@ def initialize_data_base(reset_if_exist=False, verbose=0):
                 connection.close()
             except Exception:
                 pass
-    
+    # Appel dynamique des fonctions de création des tables
     missing_table = database_missing_tables(verbose=verbose)
     for table in missing_table:
         globals()["_create_table_"+table]( verbose=verbose)
@@ -365,7 +365,6 @@ def reset_database(verbose=0):
     initialize_data_base(verbose=verbose)
 
 def drop_database(verbose=0):
-    short_name = "drop_database"
     sql = f"drop database if exists cojoden_avance; "
     executer_sql(sql=sql, verbose=verbose)
 

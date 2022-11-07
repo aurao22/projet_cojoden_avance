@@ -249,7 +249,25 @@ ORDER BY nb_oeuvres DESC
 LIMIT 100;
 
 SELECT museo, nom, ville.ville, latitude, longitude, count(distinct(ref)) as nb_oeuvres, count(distinct(artiste)) as nb_artistes FROM musee inner join ville on ville.id = musee.ville inner join oeuvre on museo = lieux_conservation inner join creer on ref = creer.oeuvre WHERE ville_search LIKE '%BRIEUC%' GROUP BY museo ORDER BY nb_oeuvres DESC LIMIT 100;
-
-SELECT museo, nom, ville.ville, latitude, longitude, count(distinct(ref)) as nb_oeuvres, count(distinct(artiste)) as nb_artistes FROM musee inner join ville on ville.id = musee.ville inner join oeuvre on museo = lieux_conservation inner join creer on ref = creer.oeuvre WHERE ville_search LIKE '%BRIEUC%' AND museo in (SELECT distinct(`lieux_conservation`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%PEINTRE%' ) GROUP BY museo ORDER BY nb_oeuvres DESC LIMIT 100;
-
+SELECT museo, nom, ville.ville, latitude, longitude, count(distinct(ref)) as nb_oeuvres, count(distinct(artiste)) as nb_artistes FROM musee inner join ville on ville.id = musee.ville inner join oeuvre on museo = lieux_conservation inner join creer on ref = creer.oeuvre WHERE ville_search LIKE '%PARIS%' AND museo in (SELECT distinct(`lieux_conservation`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%PEINTRE%' ) GROUP BY museo ORDER BY nb_oeuvres DESC LIMIT 100;
 SELECT museo, nom, ville.ville, latitude, longitude, count(distinct(ref)) as nb_oeuvres, count(distinct(artiste)) as nb_artistes FROM musee inner join ville on ville.id = musee.ville inner join oeuvre on museo = lieux_conservation inner join creer on ref = creer.oeuvre WHERE ville_search LIKE '%LANNION%' GROUP BY museo ORDER BY nb_oeuvres DESC LIMIT 100;
+SELECT museo, nom, ville.ville, latitude, longitude, count(distinct(ref)) as nb_oeuvres, count(distinct(artiste)) as nb_artistes 
+FROM musee 
+inner join ville on ville.id = musee.ville 
+inner join oeuvre on museo = lieux_conservation 
+inner join creer on ref = creer.oeuvre 
+WHERE ville_search LIKE '%PARIS%' 
+AND museo in (SELECT distinct(`lieux_conservation`) FROM oeuvre WHERE `titre` LIKE '%RAOUL%' ) 
+AND museo in (
+	SELECT distinct(`lieux_conservation`) FROM creer 
+    INNER JOIN artiste ON artiste.id = creer.artiste 
+    WHERE `creer`.`role` LIKE '%PEINTRE%' ) 
+GROUP BY museo ORDER BY nb_oeuvres DESC LIMIT 100;
+
+SELECT museo, nom, ville.ville, latitude, longitude, count(distinct(ref)) as nb_oeuvres, count(distinct(artiste)) as nb_artistes FROM musee inner join ville on ville.id = musee.ville inner join oeuvre on museo = lieux_conservation inner join creer on ref = creer.oeuvre WHERE (ville_search LIKE '%BRETAGNE%' OR departement LIKE '%BRETAGNE%' OR region1 LIKE '%BRETAGNE%') AND museo in (SELECT distinct(`lieux_conservation`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `nom_search` LIKE '%RAOUL%' AND `dit` LIKE '%RAOUL%' ) GROUP BY museo ORDER BY nb_oeuvres DESC LIMIT 100;
+SELECT museo, nom, ville.ville, latitude, longitude, count(distinct(ref)) as nb_oeuvres, count(distinct(artiste)) as nb_artistes FROM musee inner join ville on ville.id = musee.ville inner join oeuvre on museo = lieux_conservation inner join creer on ref = creer.oeuvre WHERE `nom_search` LIKE '%ART%' AND (ville_search LIKE '%BREST%') AND museo in (SELECT distinct(`lieux_conservation`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%PEINTRE%' ) GROUP BY museo ORDER BY nb_oeuvres DESC LIMIT 100;
+
+SELECT museo, nom, ville.ville, latitude, longitude, count(distinct(ref)) as nb_oeuvres, count(distinct(artiste)) as nb_artistes FROM musee inner join ville on ville.id = musee.ville inner join oeuvre on museo = lieux_conservation inner join creer on ref = creer.oeuvre WHERE (ville_search LIKE '%BRIEUC%') AND museo in (SELECT distinct(`lieux_conservation`) FROM oeuvre WHERE `titre` LIKE '%RAOUL%' ) AND museo in (SELECT distinct(`lieux_conservation`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%PEINTRE%' ) GROUP BY museo ORDER BY nb_oeuvres DESC LIMIT 100;
+SELECT museo, nom, ville.ville, latitude, longitude, count(distinct(ref)) as nb_oeuvres, count(distinct(artiste)) as nb_artistes FROM musee inner join ville on ville.id = musee.ville inner join oeuvre on museo = lieux_conservation inner join creer on ref = creer.oeuvre WHERE (ville_search LIKE '%BRETAGNE%') AND museo in (SELECT distinct(`lieux_conservation`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%PEINTRE%' ) GROUP BY museo ORDER BY nb_oeuvres DESC LIMIT 100;
+
+SELECT distinct(`lieux_conservation`) FROM concerner INNER JOIN domaine ON domaine.id = concerner.domaine INNER JOIN oeuvre ON oeuvre.ref = concerner.oeuvre WHERE `dom_search` LIKE '%AFRIQUE%';

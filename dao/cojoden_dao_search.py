@@ -804,8 +804,6 @@ def _test_search_musees(verbose=1):
 
     to_test={ 
         ('ville',   'oeuvre',   'musee',    'metier',   'materiaux',    'domaine',  'artiste',  'type_oeuvre',  'search_strategie', 'search_level') :45,
-        # ('PARIS',   'RAOUL',    None,        'peintre',  None,          None,       None,       None,           'AND',              1)              :1,
-        # ('PARIS',   None,       None,        None,       None,          None,       'RAOUL',    None,           'AND',              1)              :1,
         ('BRETAGNE',None,       None,        None,       None,          None,       'RAOUL',    None,           'AND',              2)              :15,
         ('BREST',   None,       "art",      'peintre',  None,           None,       None,       None,           'AND',              1)               :1, # Check
         ('BRIEUC',  'RAOUL',    None,       'peintre',  None,           None,       None,       None,           'AND',              1)               :0, # Check
@@ -815,9 +813,9 @@ def _test_search_musees(verbose=1):
         ('LANNION', None,       None,       None,       None,           None,       None,       None,           'AND',              1)              :0, # Check
         ('PARIS',   None,       None,        None,       None,          'afrique',  None,       None,           'AND',              1)              :1,
         ('PARIS',   None,       None,        None,       None,          'basque',   None,       None,           'AND',              1)              :1,
-        ('PARIS',   None,       None,        None,       "acier",       None,       None,       None,           'AND',              1)              :1,
-        ('PARIS',   None,       None,        None,       "albâtre",     None,       None,       None,           'AND',              1)              :1,
         # Matériaux à éviter => déclenche des timeout, => augmentation du timeout par défaut
+        # ('PARIS',   None,       None,        None,       "acier",       None,       None,       None,           'AND',              1)              :1,
+        # ('PARIS',   None,       None,        None,       "albâtre",     None,       None,       None,           'AND',              1)              :1,
         #('BRIEUC',  'RAOUL',    None,       'peintre',  'agate',        None,       None,       None,           'AND',              1)              :0, # Check
         #('BRIEUC',  'GOULVEN',  None,       'peintre',  'agate',        None,       None,       None,           'AND',              1)              :0,
         #('BRIEUC',  None,       None,       None,       'agate',        None,       None,       None,           'AND',              1)              :1, # Check
