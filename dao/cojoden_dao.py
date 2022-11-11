@@ -36,9 +36,11 @@ from tqdm import tqdm
 
 # Récupère le répertoire du programme
 execution_path = getcwd() + "\\"
+# Permet de gérer le cas d'une exécution dans un notebook par exemple
+execution_path = execution_path.split("PROJETS")[0]
 if "PROJETS" not in execution_path:
     execution_path = join(execution_path, "PROJETS")
-if "projet_joconde" not in execution_path:
+if "projet_cojoden_avance" not in execution_path:
     execution_path = join(execution_path, "projet_cojoden_avance")
 if "dao" not in execution_path:
     execution_path = join(execution_path, "dao")

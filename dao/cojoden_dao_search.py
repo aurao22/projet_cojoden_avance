@@ -94,7 +94,7 @@ JOIN_TABLE = {
 # %% RECHERCHE EN BDD -- CIBLEE
 # ----------------------------------------------------------------------------------
 # %% sql_oeuvre_domaine
-def sql_oeuvre_domaine(value, search_strategie='AND', search_level=1, cols=["oeuvre"], verbose=0):
+def sql_oeuvre_domaine(value, search_strategie='AND', search_level=1, cols=["lieux_conservation"], verbose=0):
     short_name = "sql_oeuvre_domaine"
     sql_sub_select = ""
     if value is not None:
@@ -107,13 +107,8 @@ def sql_oeuvre_domaine(value, search_strategie='AND', search_level=1, cols=["oeu
             else:
                 sql_sub_select += f"`{cols[i]}`"
 
-        sql_sub_select = f"""SELECT {sql_sub_select} FROM concerner 
-                            INNER JOIN domaine ON domaine.id = concerner.domaine 
-                            """
-
-        if "lieux_conservation" in cols:
-            sql_sub_select += " INNER JOIN oeuvre ON oeuvre.ref = concerner.oeuvre "
-
+        sql_sub_select = f"SELECT {sql_sub_select}  FROM oeuvre INNER JOIN concerner ON oeuvre.ref = concerner.oeuvre INNER JOIN domaine ON domaine.id = concerner.domaine "
+        
         nb_cond = 0
         for level, cols in LEVEL_COLS.get("domaine", {}).items():
             if level <= search_level:
@@ -136,7 +131,7 @@ def sql_oeuvre_domaine(value, search_strategie='AND', search_level=1, cols=["oeu
 
 
 # %% sql_oeuvre_materiaux
-def sql_oeuvre_materiaux(value, search_strategie='AND', search_level=1, cols=["oeuvre"], verbose=0):
+def sql_oeuvre_materiaux(value, search_strategie='AND', search_level=1, cols=["lieux_conservation"], verbose=0):
     short_name = "sql_oeuvre_materiaux"
     sql_sub_select = ""
     if value is not None:
@@ -149,12 +144,8 @@ def sql_oeuvre_materiaux(value, search_strategie='AND', search_level=1, cols=["o
             else:
                 sql_sub_select += f"`{cols[i]}`"
 
-        sql_sub_select = f"""SELECT {sql_sub_select} 
-                            FROM composer 
-                            INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux
-                            """
-        if "lieux_conservation" in cols:
-            sql_sub_select += " INNER JOIN oeuvre ON oeuvre.ref = composer.oeuvre "
+        sql_sub_select = f"SELECT {sql_sub_select} FROM oeuvre INNER JOIN composer ON oeuvre.ref = composer.oeuvre INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux "
+
         nb_cond = 0
         for level, cols in LEVEL_COLS.get("materiaux_technique", {}).items():
             if level <= search_level:
@@ -230,7 +221,7 @@ def sql_oeuvre_artiste(value, role=None, search_strategie='AND', search_level=1,
             else:
                 sql_sub_select += f"`{cols[i]}`"
 
-        sql_sub_select = f"SELECT {sql_sub_select}  FROM creer INNER JOIN artiste ON artiste.id = creer.artiste "
+        sql_sub_select = f"SELECT {sql_sub_select}  FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste "
         nb_cond = 0
 
         if role is not None:
@@ -297,7 +288,84 @@ def search_musees(ville=None, oeuvre=None, musee=None, metier=None, materiaux=No
     sql_where = ""
     sql_end = "GROUP BY museo  ORDER BY nb_oeuvres DESC"
     nb_cond = 0
+    sub_musees = None
+
+    if musee is not None :
+        search_value = convert_string_to_search_string(musee)
+        sql_where += f" WHERE `nom_search` LIKE '%{search_value}%' "
+        nb_cond += 1
+
+    if ville is not None:
+        if len(sql_where)==0:
+            sql_where += f" WHERE"
+        else:
+            sql_where += f" {search_strategie}"
+        search_value = convert_string_to_search_string(ville)    
+        sql_where += f" (ville_search LIKE '%{search_value}%' OR departement LIKE '%{search_value}%' OR region1 LIKE '%{search_value}%') "
+        nb_cond += 1
+
+    if oeuvre is not None or type_oeuvre is not None:
+        sub_oeuvre = sql_oeuvre_oeuvre(value=oeuvre, type_oeuvre=type_oeuvre, search_strategie=search_strategie, cols=["lieux_conservation"], search_level=search_level, verbose=verbose)
+        if sub_oeuvre is not None and len(sub_oeuvre)>0:
+            if len(sql_where)==0:
+                sql_where += f" WHERE"
+            else:
+                sql_where += f" {search_strategie}"
+            sql_where += f" museo in ({sub_oeuvre}) "
+            nb_cond += 1
+
+    if metier is not None or artiste is not None:
+        sub_artiste = sql_oeuvre_artiste(value=artiste, role=metier,  cols=["lieux_conservation"], search_strategie=search_strategie, search_level=search_level, verbose=verbose)
+
+        # Traitement en 2 requêtes sinon le PC ne tient pas la charge mémoire
+        tp = executer_sql(sql=sub_artiste, verbose=verbose)
+        smus = set([m[0] for m in tp])
+        if sub_musees is None:
+            sub_musees = smus
+        else:
+            sub_musees = smus.intersection(sub_musees)
     
+    sql = sql_begin + " " +sql_where+ " " + sql_end
+    
+    if limit is not None and sub_musees is None:
+        sql += f" LIMIT {limit}"
+
+    sql = sql.replace("\n", "")
+    sql = re.sub(' +', ' ', sql)
+
+    if verbose>1:
+        print(f'[{short_name}] \tDEBUG : {sql}')
+
+    res = executer_sql(sql=sql, verbose=verbose)
+
+    # Traitement des requêtes en 2 temps
+    if sub_musees is not None:
+        res2 = []
+        for rm in res:
+            if rm[0] in sub_musees:
+                res2.append(rm)
+        if limit is not None and limit < len(res2):
+            res = res2[:limit]
+        else:
+            res = res2
+
+    return res
+
+
+def search_musees_old(ville=None, oeuvre=None, musee=None, metier=None, materiaux=None, domaine=None, artiste=None, type_oeuvre=None, search_strategie='AND', search_level=1, limit=None, verbose=0):
+    short_name = "search_musees"
+    sql_begin = """SELECT museo, nom, ville.ville, latitude, longitude, count(distinct(ref)) as nb_oeuvres, count(distinct(artiste)) as nb_artistes
+                    FROM musee
+                    inner join ville on ville.id = musee.ville
+                    inner join oeuvre on museo = lieux_conservation
+                    inner join creer on ref = creer.oeuvre
+                   """
+                   # LIMIT 100;
+    sql_where = ""
+    sql_end = "GROUP BY museo  ORDER BY nb_oeuvres DESC"
+    nb_cond = 0
+    sub_musees = None
+
     if musee is not None :
         search_value = convert_string_to_search_string(musee)
         sql_where += f" WHERE `nom_search` LIKE '%{search_value}%' "
@@ -327,16 +395,12 @@ def search_musees(ville=None, oeuvre=None, musee=None, metier=None, materiaux=No
 
     if metier is not None or artiste is not None:
         sub_artiste = sql_oeuvre_artiste(value=artiste, role=metier,  cols=["lieux_conservation"], search_strategie=search_strategie, search_level=search_level, verbose=verbose)
-        if sub_artiste is not None and len(sub_artiste)>0:
-            if len(sql_where)==0:
-                sql_where += f" WHERE"
-            else:
-                sql_where += f" {search_strategie}"
-            sql_where += f" museo in ({sub_artiste}) "
-            nb_cond += 1
-
+        # Traitement en 2 requêtes sinon le PC ne tient pas la charge mémoire
+        sub_musees = executer_sql(sql=sub_artiste, verbose=verbose)
+        
     if domaine is not None:
         sub_domaine = sql_oeuvre_domaine(value=domaine, search_strategie=search_strategie, search_level=search_level, cols=["lieux_conservation"], verbose=verbose)
+
         if sub_domaine is not None and len(sub_domaine)>0:
             if len(sql_where)==0:
                 sql_where += f" WHERE"
@@ -356,8 +420,8 @@ def search_musees(ville=None, oeuvre=None, musee=None, metier=None, materiaux=No
             nb_cond += 1
 
     sql = sql_begin + " " +sql_where+ " " + sql_end
-
-    if limit is not None:
+    
+    if limit is not None and sub_musees is None:
         sql += f" LIMIT {limit}"
 
     sql = sql.replace("\n", "")
@@ -367,6 +431,21 @@ def search_musees(ville=None, oeuvre=None, musee=None, metier=None, materiaux=No
         print(f'[{short_name}] \tDEBUG : {sql}')
 
     res = executer_sql(sql=sql, verbose=verbose)
+
+    if sub_musees is not None:
+
+        smus = set()
+        for m in sub_musees:
+            smus.add(m[0])
+        res2 = []
+        for rm in res:
+            if rm[0] not in smus:
+                res2.append(rm)
+        if limit is not None and limit < len(res2):
+            res = res2[:limit]
+        else:
+            res = res2
+
     return res
 
 #  %% search_multicriteria

@@ -595,10 +595,13 @@ if __name__ == '__main__':
 
     # Récupère le répertoire du programme
     file_path = getcwd() + "\\"
-    if "PROJETS" not in file_path:
-        file_path = join(file_path, "PROJETS")
-    if "projet_joconde" not in file_path:
-        file_path = join(file_path, "projet_joconde")
+    execution_path = file_path.split("PROJETS")[0]
+    if "PROJETS" not in execution_path:
+        execution_path = join(execution_path, "PROJETS")
+    if "projet_cojoden_avance" not in execution_path:
+        execution_path = join(execution_path, "projet_cojoden_avance")
+    if "dao" not in execution_path:
+        execution_path = join(execution_path, "dao")
     
     data_set_path = join(file_path , "dataset\\")
     data_set_file_name = "base-joconde-extrait.csv"
