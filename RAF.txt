@@ -9,11 +9,17 @@ Extraction RAF :
 	- Extraction CONCERNE 				=> DONE
 	- Insertion en BDD					=> DONE
 	- Vérifier les données manquantes et pourquoi => DONE pas de données manquantes, décalage entre la vue graphique vscode et les données réellement dans la BDD
-	- Recherche sur plusieurs critères 	=> IN PROGRESS
-	- Recherche sur distance
-	- Module de recherches
-	- IHM streamlit pour la recherche 	=> IN PROGRESS
+	- Recherche sur plusieurs critères 	=> DONE
+	- Recherche sur distance			=> DONE
+	- Module de recherches				=> DONE
+	- IHM streamlit pour la recherche 	=> DONE
 	- Insertion en BDD d'une oeuvre (oeuvre par oeuvre)
+	- => correction des auto increments => IN PROGRESS
+	- => Corriger image MCD BDD
+	
+	# Facultatif
+	- Améliorer le résultat et préciser le nombre d'oeuvre du critère (artiste ou oeuvre)
+	- Permettre d'afficher la liste des oeuvres
 	
 	
 SELECT oeuvre.ref, oeuvre.titre, oeuvre.type, oeuvre.annee_debut, oeuvre.inscriptions, oeuvre.texte FROM oeuvre
