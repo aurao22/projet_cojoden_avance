@@ -345,3 +345,12 @@ CREATE TABLE IF NOT EXISTS `concerner` (
 SELECT distinct(`id`) FROM `VILLE` WHERE ville_search  LIKE '%BREST%';
 
 SELECT museo, nom, ville.ville, latitude, longitude, count(distinct(ref)) as nb_oeuvres, count(distinct(artiste)) as nb_artistes FROM musee inner join ville on ville.id = musee.ville inner join oeuvre on museo = lieux_conservation inner join creer on ref = creer.oeuvre WHERE (ville_search LIKE '%BRETAGNE%' OR departement LIKE '%BRETAGNE%' OR region1 LIKE '%BRETAGNE%') GROUP BY museo ORDER BY nb_oeuvres DESC;
+
+SELECT distinct(`lieux_conservation`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `nom_search` LIKE '%RAOUL%' AND `nom_dit` LIKE '%RAOUL%';
+
+DELETE FROM METIER WHERE metier_search LIKE 'TEST_%';
+SELECT * FROM METIER WHERE metier_search LIKE 'TEST_%';
+
+SELECT * from ville where ville_search LIKE '%BREST%';
+INSERT INTO `METIER` (`metier_search`, `metier`) VALUES ('TEST MAGICIEN', 'test_Magicien');
+INSERT INTO `METIER` (`metier_search`, `metier`, `categorie`) VALUES ('TEST TESTEUR', 'test_Testeur', Informatique);

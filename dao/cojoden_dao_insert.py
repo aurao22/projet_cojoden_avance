@@ -32,7 +32,7 @@ print(f"[cojoden_dao_insert] execution path= {execution_path}")
 sys.path.append(execution_path)
 
 from tqdm import tqdm
-from dao.cojoden_dao_search import search_artiste, search_ville, search_domaine, search_materiaux_technique, search_musee_by_museo, search_oeuvre_by_ref
+from dao.cojoden_dao_search import search_artiste, search_ville, search_metier, search_domaine, search_materiaux_technique, search_musee_by_museo, search_oeuvre_by_ref
 from data_preprocessing.cojoden_functions import convert_string_to_search_string
 from dao.cojoden_dao import executer_sql
 
@@ -42,7 +42,7 @@ from dao.cojoden_dao import executer_sql
 def insert_metier(metier, categorie=None, verbose=0):
     shortname = 'insert_metier'
     # INSERT INTO `METIER` (`metier_search`, `metier`, `categorie`) VALUES (NULL, NULL, NULL);
-    exist = search_ville(value=metier, verbose=verbose)
+    exist = search_metier(value=metier, verbose=verbose)
     if exist is not None and len(exist)>0:
         if verbose > 0:
             print(f"[{shortname}] \tINFO : {metier} déjà existante en BDD => {exist}")
@@ -57,7 +57,7 @@ def insert_metier(metier, categorie=None, verbose=0):
         if categorie is not None  and len(categorie)>0:
             sql_start   += ", `categorie`"
             categorie = categorie.replace("'", "\\'")
-            sql_val     += f", {categorie}"
+            sql_val     += f", '{categorie}'"
 
         sql = sql_start + sql_val + ");"
 
@@ -70,36 +70,37 @@ def insert_metier(metier, categorie=None, verbose=0):
 def insert_ville(ville, departement=None, region1=None, verbose=0):
     shortname = 'insert_ville'
     # INSERT INTO `VILLE` (`id`, `ville_search`, `ville`, `departement`, `region1`) VALUES (NULL, NULL, NULL, NULL, NULL);
+    if ville is not None:
+        exist = search_ville(value=ville, verbose=verbose)
+        if exist is not None and len(exist)>0:
+            if verbose > 0:
+                print(f"[{shortname}] \tINFO : {ville} déjà existante en BDD => {exist}")
+            return exist
+        else:
+            ville_search = convert_string_to_search_string(ville)
+            
+            sql_start = "INSERT INTO `VILLE` (`id`, `ville_search`, `ville` "
+            ville = ville.replace("'", "\\'")
+            sql_val = f") VALUES (NULL,'{ville_search}', '{ville}'"
+            
+            if departement is not None  and len(departement)>0:
+                sql_start   += ", `departement`"
+                departement = departement.replace("'", "\\'")
+                sql_val     += f", '{departement}'"
 
-    exist = search_ville(value=ville, verbose=verbose)
-    if exist is not None and len(exist)>0:
-        if verbose > 0:
-            print(f"[{shortname}] \tINFO : {ville} déjà existante en BDD => {exist}")
-        return exist
-    else:
-        ville_search = convert_string_to_search_string(ville)
-        
-        sql_start = "INSERT INTO `VILLE` (`id`, `ville_search`, `ville` "
-        ville = ville.replace("'", "\\'")
-        sql_val = f") VALUES (NULL,'{ville_search}', '{ville}'"
-        
-        if departement is not None  and len(departement)>0:
-            sql_start   += ", `departement`"
-            departement = departement.replace("'", "\\'")
-            sql_val     += f", '{departement}'"
+            if region1 is not None  and len(region1)>0:
+                sql_start   += ", `region1`"
+                region1 = region1.replace("'", "\\'")
+                sql_val     += f", '{region1}'"
 
-        if region1 is not None  and len(region1)>0:
-            sql_start   += ", `region1`"
-            region1 = region1.replace("'", "\\'")
-            sql_val     += f", '{region1}'"
+            sql = sql_start + sql_val + ");"
 
-        sql = sql_start + sql_val + ");"
-
-        if verbose > 1:
-            print(f"[{shortname}] \t DEBUG : {sql}")
-        
-        res = executer_sql(sql=sql,verbose=verbose)
-        return res
+            if verbose > 1:
+                print(f"[{shortname}] \t DEBUG : {sql}")
+            
+            res = executer_sql(sql=sql,verbose=verbose)
+            return res
+    return None
 
 def insert_musee(museo, nom, latitude=None, longitude=None, plaquette_url=None, ville=None, departement=None, region1=None,verbose=0):
     shortname = 'insert_metier'
@@ -139,7 +140,7 @@ def insert_musee(museo, nom, latitude=None, longitude=None, plaquette_url=None, 
             plaquette_url = plaquette_url.replace("'", "\\'")
             sql_val     += f", '{plaquette_url}'"
 
-        if ville is not None  and len(ville)>0:
+        if ville is not None :
             sql_start   += ", `ville`"
             sql_val     += f", {ville}"
 
@@ -401,52 +402,73 @@ def insert_composer(ref_oeuvre, materiaux, complement=None, verbose=0):
 def _test_insert_ville(verbose=1):
     to_test = {
         # (ville,departement,region1) : ""
-        ("Lannion","Côtes d'Armor",'Bretagne')  : True,
-        ("Pédernec","Côtes d'Armor",'Bretagne') : True,
-        ("Brest","Côtes d'Armor",'Bretagne')    : False,
-        (None,"Côtes d'Armor",'Bretagne')       : False,
+        ("Lannion","Côtes d'Armor",'Bretagne')  : 411,
+        ("Pédernec","Côtes d'Armor",'Bretagne') : 412,
+        ("Brest","Côtes d'Armor",'Bretagne')    : 64, # déjà existant
+        (None,"Finistère",'Bretagne')           : None,
     }
 
-    for (ville,departement,region1), expected in tqdm(to_test.items()):
+    for (ville,departement,region1), expected in tqdm(to_test.items(), desc="insert_ville"):
         res = insert_ville(ville, departement=departement, region1=region1, verbose=verbose)
-        assert res == expected
+        if isinstance(res, list) and len(res)>0:
+            res = res[0][0]
+        
+        assert res == expected or res > 410
 
 
 def _test_insert_metier(verbose=1):
     to_test = {
         # (metier,categorie)
-        ("test_insert_Magicien",None)            : True,
-        ("test_insert_Testeur", "Informatique")  : True,
+        ("test_Magicien",None)            : 'TEST MAGICIEN',
+        ("test_Testeur", "Informatique")  : 'TEST TESTEUR',
     }
-    for (metier,categorie), expected in tqdm(to_test.items()):
+    for (metier,categorie), expected in tqdm(to_test.items(), desc="insert_metier"):
         res = insert_metier(metier=metier, categorie=categorie, verbose=verbose)
+        res = search_metier(value=metier, verbose=verbose)
+        if isinstance(res, list) and len(res)>0:
+            res = res[0][0]
         assert res == expected
 
 def _test_insert_musee(verbose=1):
     to_test = {
         # (museo, nom, latitude, longitude, ville, departement, region1)
-        ("test_insert_Magicien",None)            : True,
-        ("test_insert_Testeur", "Informatique")  : True,
+        ("test_museo_1", "test_museo_1", None, None, "LANNION", "Côtes d'Armor",'Bretagne')             : "test_museo_1",
+        # 64 = Brest
+        ("test_museo_2", "test_museo_2", None, None,  64,    None          ,None)                       : "test_museo_2",
+        ("test_museo_3", "test_museo_3", None, None,  "BREST",    None          ,None)                  : "test_museo_3",
     }
-    for (museo, nom, latitude, longitude, plaquette_url, ville, departement, region1), expected in tqdm(to_test.items()):
-        res = insert_musee(museo=museo, nom=nom, latitude=latitude, longitude=longitude, ville=ville, departement=departement, region1=region1,verbose=0)
+    for (museo, nom, latitude, longitude, ville, departement, region1), expected in tqdm(to_test.items(), desc="insert_musee"):
+        res = insert_musee(museo=museo, nom=nom, latitude=latitude, longitude=longitude, ville=ville, departement=departement, region1=region1,verbose=verbose)
+        res = search_musee_by_museo(value=museo, verbose=verbose)
+        if isinstance(res, list) and len(res)>0:
+            res = res[0][0]
         assert res == expected
 
 def _test_clean_after_run(verbose=1):
 
     to_execute = [
         "DELETE FROM VILLE WHERE id > '410';", # Suppression de toutes les villes qui ont été insérées hors populate initial
-        "DELETE FROM METIER WHERE id > 'test_insert_%';",
+        "ALTER TABLE VILLE auto_increment = 411;"
+        "DELETE FROM METIER WHERE metier_search LIKE 'TEST %';",
+        "DELETE FROM MUSEE WHERE museo LIKE 'test_museo_%';",
     ]
 
+    for sql in tqdm(to_execute, desc="clean_after_run"):
+        try:
+            res = executer_sql(sql)
 
+        except Exception as error:
+            print(error)
+        
 
 # ----------------------------------------------------------------------------------
 # %%                       MAIN
 # ----------------------------------------------------------------------------------
 if __name__ == '__main__':
-    verbose = 2
+    verbose = 1
+    _test_clean_after_run(verbose=verbose)
     _test_insert_ville(verbose=verbose)
     _test_insert_metier(verbose=verbose)
-    
+    _test_insert_musee(verbose=verbose)
+    _test_clean_after_run(verbose=verbose)
 
