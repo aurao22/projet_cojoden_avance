@@ -19,10 +19,20 @@ __version__     = "1.0.0"
 
 # %% import
 import pandas as pd
-import sys
 import re
+import sys
+from os import getcwd
+from os.path import join
 
-sys.path.append(r"C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance")
+execution_path = getcwd()
+
+if 'PROJETS' not in execution_path:
+    execution_path = join(execution_path, "PROJETS")
+if 'projet_cojoden_avance' not in execution_path:
+    execution_path = join(execution_path, "projet_cojoden_avance")
+print(f"[cojoden_dao_search] execution path= {execution_path}")
+sys.path.append(execution_path)
+
 from dao.cojoden_dao import executer_sql
 from data_preprocessing.cojoden_functions import convert_string_to_search_string
 from tqdm import tqdm
@@ -52,7 +62,7 @@ LEVEL_COLS = {
                 },
                 'artiste':{
                             1 : ["nom_search"],
-                            2 : ["dit"],
+                            2 : ["nom_dit"],
                         },
     }
 
@@ -62,7 +72,7 @@ SEARCH_RESULT_COLS_BY_TABLE = {
         'metier'    :'metier.metier',
         'materiaux_technique':'materiaux_technique.materiaux_technique',
         'domaine'   :'domaine.domaine',
-        'artiste'   :'artiste.nom_naissance, artiste.dit',
+        'artiste'   :'artiste.nom_naissance, artiste.nom_dit',
         'musee'     :"musee.museo, musee.nom, musee.ville as ville_musee, musee.latitude, musee.longitude"
     }
 
@@ -73,7 +83,7 @@ SEARCH_RESULT_COLS2 = {
         'metier'    :'metier.metier',
         'materiaux_technique':'materiaux_technique.materiaux_technique',
         'domaine'   :'domaine.domaine',
-        'artiste'   :'artiste.nom_naissance, artiste.dit',
+        'artiste'   :'artiste.nom_naissance, artiste.nom_dit',
         'musee'     :"musee.museo, musee.nom, musee.ville as ville_musee, musee.latitude, musee.longitude"
     }
 
@@ -89,6 +99,31 @@ JOIN_TABLE = {
     "creer"                 :[("metier","metier_search"), ("oeuvre","ref"),  ("artiste","id")],
     "concerner"             :[("oeuvre","ref"),  ("domaine","id")],
 }
+
+# ----------------------------------------------------------------------------------
+# %% RECHERCHE EN BDD -- PAR TABLE
+# ----------------------------------------------------------------------------------
+def search_metier(value, cols=['metier_search'], verbose=0):
+    return _search_one_table(table_name='METIER', value=value, search_col='metier_search', cols=cols ,is_like=True, verbose=verbose)  
+
+def search_materiaux_technique(value, cols=['id'], verbose=0):
+    return _search_one_table(table_name='MATERIAUX_TECHNIQUE', value=value, search_col='mat_search', cols=cols ,is_like=True, verbose=verbose)
+
+def search_domaine(value, cols=['id'], verbose=0):
+    return _search_one_table(table_name='DOMAINE', value=value, search_col='dom_search', cols=cols ,is_like=True, verbose=verbose)  
+
+def search_artiste(value, cols=['id'], verbose=0):
+    return _search_one_table(table_name='ARTISTE', value=value, search_col='nom_search', cols=cols ,is_like=True, verbose=verbose)
+   
+def search_ville(value, cols=['id'], verbose=0):
+    return _search_one_table(table_name='VILLE', value=value, search_col='ville_search', cols=cols ,is_like=True, verbose=verbose)
+    
+def search_musee_by_museo(value, cols=['museo'], verbose=0):
+    return _search_one_table(table_name='MUSEE', value=value, search_col='museo', cols=cols ,is_like=False, verbose=verbose)
+
+def search_oeuvre_by_ref(value, cols=['ref'], verbose=0):
+    return _search_one_table(table_name='OEUVRE', value=value, search_col='ref', cols=cols ,is_like=False, verbose=verbose)
+    
 
 # ----------------------------------------------------------------------------------
 # %% RECHERCHE EN BDD -- CIBLEE
@@ -126,7 +161,7 @@ def sql_oeuvre_domaine(value, search_strategie='AND', search_level=1, cols=["lie
     sql_sub_select = sql_sub_select.replace("\n", "")
     sql_sub_select = re.sub(' +', ' ', sql_sub_select)
     if verbose>1:
-        print(f'[{short_name}] \tDEBUG : domaine => {sql_sub_select}')
+        print(f'[{short_name}] \tDEBUG : {sql_sub_select}')
     return sql_sub_select
 
 
@@ -547,6 +582,34 @@ def search_on_table(table_name, search_str, search_level=1, increase_level=True,
         res = search_on_table(table_name=table_name, search_str=search_str, search_level=search_level+1, increase_level=increase_level, limit=limit, verbose=verbose)
     return res
 
+# %% search_metier
+def _search_one_table(table_name, value, search_col, cols=['id'],is_like=True, verbose=0):
+    short_name = f"search_{table_name}"
+    search_res = None
+    if value is not None:
+        sql_sub_select = ""
+        for i in range(0, len(cols)):
+            if i > 0:
+                sql_sub_select += f", "
+            if len(cols)==1:
+                sql_sub_select += f"distinct(`{cols[i]}`)"
+            else:
+                sql_sub_select += f"`{cols[i]}`"
+
+        search_value = value
+        if "search" in search_col:
+            search_value = convert_string_to_search_string(value)
+        operator = f" LIKE '%{search_value}%' " if is_like else f" = '{search_value}' "
+
+        sql_sub_select = f"SELECT {sql_sub_select} FROM `{table_name}` WHERE {search_col} {operator}"
+        if verbose>1:
+            print(f'[{short_name}] \tDEBUG : {sql_sub_select}')
+        search_res = executer_sql(sql_sub_select)
+    elif verbose>0:
+        print(f'[{short_name}] \tINFO : value parameter is missing')
+
+    return search_res
+
 # ----------------------------------------------------------------------------------
 #  %%                      PRIVATE FUNCTIONS
 # ----------------------------------------------------------------------------------
@@ -678,8 +741,7 @@ def _test_search_artiste(verbose=1):
         verbose (int, optional): Log level. Defaults to 1.
     """
     
-    # SELECT * FROM artiste WHERE `nom_search` LIKE '%HUGUES%' OR nom_naissance LIKE '%HUGUES%' OR dit LIKE '%HUGUES%' LIMIT 100;
-    # SELECT * FROM artiste WHERE `nom_search` LIKE '%RAOUL%' OR nom_naissance LIKE '%RAOUL%' OR dit LIKE '%RAOUL%' LIMIT 100;
+    # SELECT * FROM artiste WHERE `nom_search` LIKE '%HUGUES%' OR nom_naissance LIKE '%HUGUES%' OR nom_dit LIKE '%HUGUES%' LIMIT 100;    
     to_test = {
         ("HUGUES", 3, False, 100):32,  
         ("HUGUES", 2, False, 100):32,  
@@ -798,13 +860,13 @@ def _test_build_join(verbose=1):
 
 def _test_sql_oeuvre_domaine(verbose=1):
     to_test = {
-        "afrique"   :"SELECT distinct(`oeuvre`) FROM concerner INNER JOIN domaine ON domaine.id = concerner.domaine WHERE `dom_search` LIKE '%AFRIQUE%' ", 
-        "amérique"  :"SELECT distinct(`oeuvre`) FROM concerner INNER JOIN domaine ON domaine.id = concerner.domaine WHERE `dom_search` LIKE '%AMERIQUE%' ",
-        "céramique" :"SELECT distinct(`oeuvre`) FROM concerner INNER JOIN domaine ON domaine.id = concerner.domaine WHERE `dom_search` LIKE '%CERAMIQUE%' ",
-        "broderie"  :"SELECT distinct(`oeuvre`) FROM concerner INNER JOIN domaine ON domaine.id = concerner.domaine WHERE `dom_search` LIKE '%BRODERIE%' ",
-        "basque"    :"SELECT distinct(`oeuvre`) FROM concerner INNER JOIN domaine ON domaine.id = concerner.domaine WHERE `dom_search` LIKE '%BASQUE%' ",
-        "épigraphie":"SELECT distinct(`oeuvre`) FROM concerner INNER JOIN domaine ON domaine.id = concerner.domaine WHERE `dom_search` LIKE '%EPIGRAPHIE%' ",
-        "miniature" :"SELECT distinct(`oeuvre`) FROM concerner INNER JOIN domaine ON domaine.id = concerner.domaine WHERE `dom_search` LIKE '%MINIATURE%' ",
+        "afrique"   :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN concerner ON oeuvre.ref = concerner.oeuvre INNER JOIN domaine ON domaine.id = concerner.domaine WHERE `dom_search` LIKE '%AFRIQUE%' ", 
+        "amérique"  :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN concerner ON oeuvre.ref = concerner.oeuvre INNER JOIN domaine ON domaine.id = concerner.domaine WHERE `dom_search` LIKE '%AMERIQUE%' ",
+        "céramique" :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN concerner ON oeuvre.ref = concerner.oeuvre INNER JOIN domaine ON domaine.id = concerner.domaine WHERE `dom_search` LIKE '%CERAMIQUE%' ",
+        "broderie"  :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN concerner ON oeuvre.ref = concerner.oeuvre INNER JOIN domaine ON domaine.id = concerner.domaine WHERE `dom_search` LIKE '%BRODERIE%' ",
+        "basque"    :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN concerner ON oeuvre.ref = concerner.oeuvre INNER JOIN domaine ON domaine.id = concerner.domaine WHERE `dom_search` LIKE '%BASQUE%' ",
+        "épigraphie":"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN concerner ON oeuvre.ref = concerner.oeuvre INNER JOIN domaine ON domaine.id = concerner.domaine WHERE `dom_search` LIKE '%EPIGRAPHIE%' ",
+        "miniature" :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN concerner ON oeuvre.ref = concerner.oeuvre INNER JOIN domaine ON domaine.id = concerner.domaine WHERE `dom_search` LIKE '%MINIATURE%' ",
     }
     
     for domaine, expected in tqdm(to_test.items(), desc="[TEST sql_oeuvre_domaine]"):
@@ -813,12 +875,12 @@ def _test_sql_oeuvre_domaine(verbose=1):
 
 def _test_sql_oeuvre_materiaux(verbose=1):
     to_test = {
-        "papier baryté"   :"SELECT distinct(`oeuvre`) FROM composer INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux WHERE `mat_search` LIKE '%PAPIER BARYTE%' ", 
-        "verre"           :"SELECT distinct(`oeuvre`) FROM composer INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux WHERE `mat_search` LIKE '%VERRE%' ", 
-        "acajou"          :"SELECT distinct(`oeuvre`) FROM composer INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux WHERE `mat_search` LIKE '%ACAJOU%' ", 
-        "acétate"         :"SELECT distinct(`oeuvre`) FROM composer INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux WHERE `mat_search` LIKE '%ACETATE%' ", 
-        "acier"           :"SELECT distinct(`oeuvre`) FROM composer INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux WHERE `mat_search` LIKE '%ACIER%' ", 
-        "albâtre"         :"SELECT distinct(`oeuvre`) FROM composer INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux WHERE `mat_search` LIKE '%ALBATRE%' ", 
+        "papier baryté"   :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN composer ON oeuvre.ref = composer.oeuvre INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux WHERE `mat_search` LIKE '%PAPIER BARYTE%' ", 
+        "verre"           :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN composer ON oeuvre.ref = composer.oeuvre INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux WHERE `mat_search` LIKE '%VERRE%' ", 
+        "acajou"          :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN composer ON oeuvre.ref = composer.oeuvre INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux WHERE `mat_search` LIKE '%ACAJOU%' ", 
+        "acétate"         :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN composer ON oeuvre.ref = composer.oeuvre INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux WHERE `mat_search` LIKE '%ACETATE%' ", 
+        "acier"           :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN composer ON oeuvre.ref = composer.oeuvre INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux WHERE `mat_search` LIKE '%ACIER%' ", 
+        "albâtre"         :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN composer ON oeuvre.ref = composer.oeuvre INNER JOIN materiaux_technique ON materiaux_technique.id = composer.materiaux WHERE `mat_search` LIKE '%ALBATRE%' ", 
     }
     
     for domaine, expected in tqdm(to_test.items(), desc="[TEST sql_oeuvre_materiaux]"):
@@ -844,21 +906,21 @@ def _test_sql_oeuvre_oeuvre(verbose=1):
 
 def _test_sql_oeuvre_artiste(verbose=1):
     to_test = {
-        ("hugues", "sculpteur")     :"SELECT distinct(`oeuvre`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%SCULPTEUR%' AND `nom_search` LIKE '%HUGUES%' ", 
-        ("hugues", "PEINTRE")       :"SELECT distinct(`oeuvre`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%PEINTRE%' AND `nom_search` LIKE '%HUGUES%' ", 
-        ("hugues", "ORFEVRE")       :"SELECT distinct(`oeuvre`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%ORFEVRE%' AND `nom_search` LIKE '%HUGUES%' ", 
-        ("hugues", None)            :"SELECT distinct(`oeuvre`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `nom_search` LIKE '%HUGUES%' ",
-        ("roméo", None)             :"SELECT distinct(`oeuvre`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `nom_search` LIKE '%ROMEO%' ", 
-        ("goulven", None)           :"SELECT distinct(`oeuvre`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `nom_search` LIKE '%GOULVEN%' ", 
-        ("raoul", None)             :"SELECT distinct(`oeuvre`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `nom_search` LIKE '%RAOUL%' ", 
-        ("raoul", "peintre")        :"SELECT distinct(`oeuvre`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%PEINTRE%' AND `nom_search` LIKE '%RAOUL%' ", 
-        ("raoul", "GRAVEUR")        :"SELECT distinct(`oeuvre`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%GRAVEUR%' AND `nom_search` LIKE '%RAOUL%' ", 
-        ("raoul", "sculpteur")      :"SELECT distinct(`oeuvre`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%SCULPTEUR%' AND `nom_search` LIKE '%RAOUL%' ", 
-        ("raoul", "illustrateur")   :"SELECT distinct(`oeuvre`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%ILLUSTRATEUR%' AND `nom_search` LIKE '%RAOUL%' ", 
-        ("raoul", "ARCHITECTE")     :"SELECT distinct(`oeuvre`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%ARCHITECTE%' AND `nom_search` LIKE '%RAOUL%' ", 
-        ("raoul", "dessinateur")    :"SELECT distinct(`oeuvre`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%DESSINATEUR%' AND `nom_search` LIKE '%RAOUL%' ", 
-        ("raoul", "AQUARELLISTE")   :"SELECT distinct(`oeuvre`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%AQUARELLISTE%' AND `nom_search` LIKE '%RAOUL%' ", 
-        ("raoul", "createur")       :"SELECT distinct(`oeuvre`) FROM creer INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%CREATEUR%' AND `nom_search` LIKE '%RAOUL%' ", 
+        ("hugues", "sculpteur")     :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%SCULPTEUR%' AND `nom_search` LIKE '%HUGUES%' ", 
+        ("hugues", "PEINTRE")       :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%PEINTRE%' AND `nom_search` LIKE '%HUGUES%' ", 
+        ("hugues", "ORFEVRE")       :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%ORFEVRE%' AND `nom_search` LIKE '%HUGUES%' ", 
+        ("hugues", None)            :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `nom_search` LIKE '%HUGUES%' ",
+        ("roméo", None)             :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `nom_search` LIKE '%ROMEO%' ", 
+        ("goulven", None)           :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `nom_search` LIKE '%GOULVEN%' ", 
+        ("raoul", None)             :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `nom_search` LIKE '%RAOUL%' ", 
+        ("raoul", "peintre")        :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%PEINTRE%' AND `nom_search` LIKE '%RAOUL%' ", 
+        ("raoul", "GRAVEUR")        :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%GRAVEUR%' AND `nom_search` LIKE '%RAOUL%' ", 
+        ("raoul", "sculpteur")      :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%SCULPTEUR%' AND `nom_search` LIKE '%RAOUL%' ", 
+        ("raoul", "illustrateur")   :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%ILLUSTRATEUR%' AND `nom_search` LIKE '%RAOUL%' ", 
+        ("raoul", "ARCHITECTE")     :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%ARCHITECTE%' AND `nom_search` LIKE '%RAOUL%' ", 
+        ("raoul", "dessinateur")    :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%DESSINATEUR%' AND `nom_search` LIKE '%RAOUL%' ", 
+        ("raoul", "AQUARELLISTE")   :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%AQUARELLISTE%' AND `nom_search` LIKE '%RAOUL%' ", 
+        ("raoul", "createur")       :"SELECT distinct(`oeuvre`) FROM oeuvre INNER JOIN creer ON oeuvre.ref = creer.oeuvre INNER JOIN artiste ON artiste.id = creer.artiste WHERE `creer`.`role` LIKE '%CREATEUR%' AND `nom_search` LIKE '%RAOUL%' ", 
     }
     
     for (value, role), expected in tqdm(to_test.items(), desc="[TEST sql_oeuvre_artiste]"):
@@ -883,11 +945,12 @@ def _test_search_musees(verbose=1):
 
     to_test={ 
         ('ville',   'oeuvre',   'musee',    'metier',   'materiaux',    'domaine',  'artiste',  'type_oeuvre',  'search_strategie', 'search_level') :45,
-        ('BRETAGNE',None,       None,        None,       None,          None,       'RAOUL',    None,           'AND',              2)              :15,
-        ('BREST',   None,       "art",      'peintre',  None,           None,       None,       None,           'AND',              1)               :1, # Check
-        ('BRIEUC',  'RAOUL',    None,       'peintre',  None,           None,       None,       None,           'AND',              1)               :0, # Check
+        ('BRETAGNE',None,       None,        None,       None,          None,       None,    None,           'AND',                 2)              :15,
+        ('BRETAGNE',None,       None,        None,       None,          None,       'RAOUL',    None,           'AND',              2)              :0,
+        ('BREST',   None,       "art",      'peintre',  None,           None,       None,       None,           'AND',              1)              :1, # Check
+        ('BRIEUC',  'RAOUL',    None,       'peintre',  None,           None,       None,       None,           'AND',              1)              :0, # Check
         ('BRIEUC',  None,       None,       None,       None,           None,       None,       None,           'AND',              1)              :1, # Check
-        ('BRETAGNE',  None,     None,       'peintre',  None,           None,       None,       None,           'AND',              1)              :0,
+        ('BRETAGNE',  None,     None,       'peintre',  None,           None,       None,       None,           'AND',              1)              :7,
         ('BRIEUC',  None,       None,       None,       None,           None,       None,       None,           'AND',              1)              :1, # Check
         ('LANNION', None,       None,       None,       None,           None,       None,       None,           'AND',              1)              :0, # Check
         # OS errno 28 - No space left on device
@@ -901,6 +964,7 @@ def _test_search_musees(verbose=1):
         #('BRIEUC',  None,       None,       None,       'agate',        None,       None,       None,           'AND',              1)              :1, # Check
     }
     limit=100
+    # verbose = 2
 
     for (ville, oeuvre, musee, metier, materiaux, domaine, artiste, type_oeuvre, search_strategie, search_level), expected in tqdm(to_test.items(), desc="[TEST search_musees]"):
         # On passe la première ligne qui sert uniquement d'entête pour les valeurs
@@ -910,13 +974,28 @@ def _test_search_musees(verbose=1):
                                 type_oeuvre=type_oeuvre, search_strategie=search_strategie, search_level=search_level, limit=limit, verbose=verbose)
 
             assert len(res) == expected or len(res) == limit
-            
+
+
+def _test_search_ville(verbose=1):
+    to_test = {
+        None:None,
+        "lannion":[],
+        "brest":[(64,)],
+        "paris":[(277,), (278,)],
+        "Pédernec":[],
+        "St Eloi":[],
+        "ville_inexistante":[],
+    }
+    for value, expected in tqdm(to_test.items(), desc="search_ville"):
+        res = search_ville(value=value, verbose=verbose)
+        assert res == expected
 
 # ----------------------------------------------------------------------------------
 # %%                       MAIN
 # ----------------------------------------------------------------------------------
-if __name__ == '__main__':
+if __name__ == '__main__': 
     verbose = 1
+    _test_search_ville(verbose=verbose)
     _test_sql_musee_ville(verbose=verbose)
     _test_sql_oeuvre_artiste(verbose=verbose)
     _test_sql_oeuvre_oeuvre(verbose=verbose)
