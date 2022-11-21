@@ -292,3 +292,56 @@ SELECT museo, nom, ville.ville, latitude, longitude, count(distinct(ref)) as nb_
 FROM musee inner join ville on ville.id = musee.ville inner join oeuvre on museo = lieux_conservation inner join creer on ref = creer.oeuvre 
 WHERE (ville_search LIKE '%BRETAGNE%' OR departement LIKE '%BRETAGNE%' OR region1 LIKE '%BRETAGNE%') 
 GROUP BY museo ORDER BY nb_oeuvres DESC LIMIT 100;
+
+-- DELETE FROM table_name WHERE condition;
+DELETE FROM VILLE WHERE id > '410';
+INSERT INTO `VILLE` ( `ville_search`, `ville` , `departement`, `region1`) VALUES ('LANNION', 'Lannion', 'Côtes d\'Armor', 'Bretagne');
+
+SELECT * FROM ville;
+
+SELECT * FROM `VILLE` WHERE ville_search  LIKE '%LANNION%';
+
+SELECT LAST_INSERT_ID() ;
+
+select max(id) FROM ville;
+
+ALTER TABLE ville auto_increment = 415;
+ALTER TABLE domaine auto_increment = 143;
+ALTER TABLE artiste auto_increment = 46237;
+ALTER TABLE materiaux_technique auto_increment = 8463;
+
+-- RENAME {DATABASE | SCHEMA} db_name TO new_db_name;
+-- RENAME TABLE old_db.table TO new_db.table;
+-- RENAME TABLE cojoden_avance.ville TO cojoden_avance.ville_save;
+
+CREATE TABLE IF NOT EXISTS `VILLE` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `ville_search` VARCHAR(100) NOT NULL,
+    `ville` VARCHAR(100) NOT NULL,
+    `departement` VARCHAR(100) NULL,
+    `region1` VARCHAR(100) NULL,
+    `region2` VARCHAR(100) NULL,
+    `pays` VARCHAR(100) NULL,
+    PRIMARY KEY (`id`))
+    ENGINE=MYISAM;
+
+DROP TABLE CONCERNER;
+
+CREATE TABLE IF NOT EXISTS `concerner` (
+    `domaine` INT NOT NULL,
+    `oeuvre` VARCHAR(100) NOT NULL,
+    PRIMARY KEY (`domaine`, `oeuvre`),
+    INDEX `fk_concerner_oeuvre_idx` (`oeuvre` ASC) VISIBLE,
+    INDEX `fk_converner_domaine_idx` (`domaine` ASC) INVISIBLE,
+    CONSTRAINT `fk_concerner_domaine`
+        FOREIGN KEY (`domaine`)
+        REFERENCES `DOMAINE` (`id`),
+    CONSTRAINT `fk_concerner_oeuvre`
+        FOREIGN KEY (`oeuvre`)
+        REFERENCES `OEUVRE` (`ref`)
+    )
+    ENGINE=MYISAM;
+    
+SELECT distinct(`id`) FROM `VILLE` WHERE ville_search  LIKE '%BREST%';
+
+SELECT museo, nom, ville.ville, latitude, longitude, count(distinct(ref)) as nb_oeuvres, count(distinct(artiste)) as nb_artistes FROM musee inner join ville on ville.id = musee.ville inner join oeuvre on museo = lieux_conservation inner join creer on ref = creer.oeuvre WHERE (ville_search LIKE '%BRETAGNE%' OR departement LIKE '%BRETAGNE%' OR region1 LIKE '%BRETAGNE%') GROUP BY museo ORDER BY nb_oeuvres DESC;
