@@ -354,3 +354,9 @@ SELECT * FROM METIER WHERE metier_search LIKE 'TEST_%';
 SELECT * from ville where ville_search LIKE '%BREST%';
 INSERT INTO `METIER` (`metier_search`, `metier`) VALUES ('TEST MAGICIEN', 'test_Magicien');
 INSERT INTO `METIER` (`metier_search`, `metier`, `categorie`) VALUES ('TEST TESTEUR', 'test_Testeur', Informatique);
+
+INSERT INTO `MUSEE` (`museo`, `nom_search`, `nom` , `ville`) VALUES ('test_museo_1', 'TEST MUSEO 1', 'test_museo_1', 411);
+
+SELECT max(id) FROM artiste;
+
+SELECT * FROM oeuvre LIMIT 100;

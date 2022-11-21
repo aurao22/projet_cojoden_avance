@@ -201,10 +201,13 @@ def insert_oeuvre(ref,titre,type_oeuvre,lieux_conservation,texte=None, annee_deb
         return exist
     else:
         sql_start = "INSERT INTO `OEUVRE` (`ref`, `titre`"
+        titre = titre.replace("'", "\\'")
+        ref = ref.replace("'", "\\'")
         sql_val = f") VALUES ('{ref}', '{titre}'"
         
         if type_oeuvre is not None  and len(type_oeuvre)>0:
             sql_start   += ", `type`"
+            type_oeuvre = type_oeuvre.replace("'", "\\'")
             sql_val     += f", '{type_oeuvre}'"
 
         if texte is not None  and len(texte)>0:
@@ -214,30 +217,31 @@ def insert_oeuvre(ref,titre,type_oeuvre,lieux_conservation,texte=None, annee_deb
 
         if lieux_conservation is not None  and len(lieux_conservation)>0:
             sql_start   += ", `lieux_conservation`"
-            sql_val     += f", {int(lieux_conservation)}"
+            lieux_conservation = lieux_conservation.replace("'", "\\'")
+            sql_val     += f", '{lieux_conservation}'"
 
         if annee_debut is not None  and len(annee_debut)>0:
             sql_start   += ", `annee_debut`"
-            sql_val     += f", '{annee_debut}'"
+            sql_val     += f", '{int(annee_debut)}'"
 
         if annee_fin is not None  and len(annee_fin)>0:
             sql_start   += ", `annee_fin`"
-            sql_val     += f", '{annee_fin}'"
+            sql_val     += f", '{int(annee_fin)}'"
 
         if inscriptions is not None  and len(inscriptions)>0:
             sql_start   += ", `inscriptions`"
             inscriptions = inscriptions.replace("'", "\\'")
             sql_val     += f", '{inscriptions}'"
 
-        if largeur_cm is not None  and len(largeur_cm)>0:
+        if largeur_cm is not None and largeur_cm>0:
             sql_start   += ", `largeur_cm`"
             sql_val     += f", {int(largeur_cm)}"
         
-        if hauteur_cm is not None  and len(hauteur_cm)>0:
+        if hauteur_cm is not None and hauteur_cm > 0:
             sql_start   += ", `hauteur_cm`"
             sql_val     += f", {int(hauteur_cm)}"
 
-        if profondeur_cm is not None  and len(profondeur_cm)>0:
+        if profondeur_cm is not None  and profondeur_cm >0:
             sql_start   += ", `profondeur_cm`"
             sql_val     += f", {int(profondeur_cm)}"
 
@@ -296,7 +300,7 @@ def insert_materiaux(materiaux_technique, id=None, verbose=0):
     else:
         dom_search = convert_string_to_search_string(materiaux_technique)
 
-        sql_start = "INSERT INTO `MATERIEAUX_TECHNIQUE` (`mat_search`, `materiaux_technique`"
+        sql_start = "INSERT INTO `materiaux_technique` (`mat_search`, `materiaux_technique`"
         materiaux_technique = materiaux_technique.replace("'", "\\'")
         sql_val = f") VALUES ('{dom_search}', '{materiaux_technique}'"
         
@@ -316,7 +320,7 @@ def insert_concerner(ref_oeuvre, domaine, verbose=0):
     shortname = 'insert_concerner'
     # INSERT INTO `CONCERNER` (`domaine`, `oeuvre`) VALUES (NULL, NULL);
 
-    if domaine is None and isinstance(domaine, str):
+    if domaine is not None and isinstance(domaine, str):
         v_id = insert_domaine(domaine=domaine, verbose=verbose)
         if (v_id is None or len(v_id) == 0):
             if verbose > 0: print(f"[{shortname}] \tWARN : {domaine} not found and not inserted.")
@@ -444,13 +448,104 @@ def _test_insert_musee(verbose=1):
             res = res[0][0]
         assert res == expected
 
+def _test_insert_artiste(verbose=1):
+    to_test = {
+        # (nom_naissance, nom_dit)
+        ("test_artiste_1", "test_artiste_1_dit")  : 46237,
+        ("test_artiste_2", "test_artiste_2_dit")  : 46238,
+        ("test_artiste_1", None)                  : 46237,   
+    }
+    for (nom_naissance, nom_dit), expected in tqdm(to_test.items(), desc="insert_artiste"):
+        res = insert_artiste(nom_naissance=nom_naissance, nom_dit=nom_dit, verbose=verbose)
+        if isinstance(res, list) and len(res)>0:
+            res = res[0][0]
+        
+        assert res == expected or res > 46236
+
+def _test_insert_oeuvre(verbose=1):
+    # SELECT * FROM oeuvre WHERE lieux_conservation = 'M0197' LIMIT 100;
+    # M0197 => Brest
+    # M0196 => Saint Brieuc
+    to_test = {
+        # (ref,titre,type_oeuvre,lieux_conservation)
+        ("test_oeuvre_1", "test_oeuvre_titre", "type test", 'M0197')  : "test_oeuvre_1",
+        ("test_oeuvre_2", "test_oeuvre_titre", "type test", "M0196")  : "test_oeuvre_2",
+        ("test_oeuvre_1", "test_oeuvre_titre", None, None)  : "test_oeuvre_1",   
+    }
+    for (ref,titre,type_oeuvre,lieux_conservation), expected in tqdm(to_test.items(), desc="insert_oeuvre"):
+        res = insert_oeuvre(ref=ref,titre=titre,type_oeuvre=type_oeuvre,lieux_conservation=lieux_conservation,verbose=verbose)
+        res = search_oeuvre_by_ref(value=ref, verbose=verbose)
+        if isinstance(res, list) and len(res)>0:
+            res = res[0][0]
+        assert res == expected
+
+def _test_insert_domaine(verbose=1):
+    to_test = {
+        # (ref,titre,type_oeuvre,lieux_conservation)
+        "test_domaine_1"  : 143,
+        "test_domaine_2"  : 144,
+        "afrique"         : 1,
+        "cinéma"          : 40,
+
+    }
+    for domaine, expected in tqdm(to_test.items(), desc="insert_domaine"):
+        res = insert_domaine(domaine, verbose=0)
+        if isinstance(res, list) and len(res)>0:
+            res = res[0][0]
+        
+        assert res == expected or res > 142
+
+def _test_insert_materiaux(verbose=1):
+    to_test = {
+        # (ref,titre,type_oeuvre,lieux_conservation)
+        "test_mat_1"    : 8463,
+        "test_mat_2"    : 8464,
+        "acétate"       : 32,
+        "accacia"       : 30,
+        "agate"         : 90,
+    }
+    for mat, expected in tqdm(to_test.items(), desc="insert_materiaux"):
+        res = insert_materiaux(materiaux_technique=mat, verbose=verbose)
+        if isinstance(res, list) and len(res)>0:
+            res = res[0][0]
+        
+        assert res == expected or res > 8462
+
+def _test_insert_concerner(verbose=1):
+    to_test = {
+        # (ref_oeuvre,domaine)
+        ("test_oeuvre_1", "cinéma")    : 0,
+        ("test_oeuvre_1", 10)          : 0,
+    }
+    for (ref_oeuvre,domaine), expected in tqdm(to_test.items(), desc="insert_concerner"):
+        res = insert_concerner(ref_oeuvre, domaine, verbose=verbose)
+        if isinstance(res, list) and len(res)>0:
+            res = res[0][0]
+        
+        assert res == expected
+    
+
 def _test_clean_after_run(verbose=1):
 
     to_execute = [
-        "DELETE FROM VILLE WHERE id > '410';", # Suppression de toutes les villes qui ont été insérées hors populate initial
+        "DELETE FROM VILLE WHERE id > '410';",      # Suppression des lignes qui ont été insérées hors populate initial
         "ALTER TABLE VILLE auto_increment = 411;"
+
         "DELETE FROM METIER WHERE metier_search LIKE 'TEST %';",
+
         "DELETE FROM MUSEE WHERE museo LIKE 'test_museo_%';",
+
+        "DELETE FROM artiste WHERE id > '46236';",  # Suppression des lignes qui ont été insérées hors populate initial
+        "ALTER TABLE artiste auto_increment = 46237;"
+
+        "DELETE FROM concerner WHERE oeuvre LIKE 'test_oeuvre_%';",
+        "DELETE FROM oeuvre WHERE ref LIKE 'test_oeuvre_%';",
+
+        "DELETE FROM domaine WHERE id > '142';",    # Suppression des lignes qui ont été insérées hors populate initial
+        "ALTER TABLE domaine auto_increment = 143;"
+
+        "DELETE FROM domaine WHERE id > '8462';",    # Suppression des lignes qui ont été insérées hors populate initial
+        "ALTER TABLE domaine auto_increment = 8463;"
     ]
 
     for sql in tqdm(to_execute, desc="clean_after_run"):
@@ -459,7 +554,7 @@ def _test_clean_after_run(verbose=1):
 
         except Exception as error:
             print(error)
-        
+
 
 # ----------------------------------------------------------------------------------
 # %%                       MAIN
@@ -470,5 +565,10 @@ if __name__ == '__main__':
     _test_insert_ville(verbose=verbose)
     _test_insert_metier(verbose=verbose)
     _test_insert_musee(verbose=verbose)
+    _test_insert_artiste(verbose=verbose)
+    _test_insert_oeuvre(verbose=verbose)
+    _test_insert_domaine(verbose=verbose)
+    _test_insert_materiaux(verbose=verbose)
+    _test_insert_concerner(verbose=verbose)
     _test_clean_after_run(verbose=verbose)
 
