@@ -17,13 +17,22 @@ __date__        = "2022-10-01"
 __version__     = "1.0.0"
 
 # %% import
-from os import getcwd
-from os.path import join
 import pandas as pd
 import numpy as np
 import re
 import sys
-sys.path.append(r"C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance")
+from os import getcwd
+from os.path import join
+
+execution_path = getcwd()
+
+if 'PROJETS' not in execution_path:
+    execution_path = join(execution_path, "PROJETS")
+if 'projet_cojoden_avance' not in execution_path:
+    execution_path = join(execution_path, "projet_cojoden_avance")
+print(f"[cojoden_extraction] execution path= {execution_path}")
+sys.path.append(execution_path)
+
 from data_preprocessing.cojoden_functions import convert_df_string_to_search_string, transpose_df_after_split_extend
 import data_preprocessing.cojoden_nettoyage as cojonet
 

@@ -18,12 +18,20 @@ __date__        = "2022-10-01"
 __version__     = "1.0.0"
 
 # %% import
-from os.path import join, exists
 import sys
+from os import getcwd
+from os.path import join
+
+execution_path = getcwd()
+
+if 'PROJETS' not in execution_path:
+    execution_path = join(execution_path, "PROJETS")
+if 'projet_cojoden_avance' not in execution_path:
+    execution_path = join(execution_path, "projet_cojoden_avance")
+print(f"[cojoden_dao_export_csv] execution path= {execution_path}")
+sys.path.append(execution_path)
 import pandas as pd
-import mysql.connector
 from tqdm import tqdm
-sys.path.append(r"C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance")
 from data_preprocessing.cojoden_functions import convert_df_string_to_search_string
 from dao.cojoden_dao import create_engine, TABLES_NAME
 

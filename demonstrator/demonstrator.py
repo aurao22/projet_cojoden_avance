@@ -18,9 +18,19 @@ __version__     = "1.0.0"
 # ----------------------------------------------------------------------------------
 # %% import
 import sys
+from os import getcwd
+from os.path import join
 
-from pytest import param
-sys.path.append(r"C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance")
+execution_path = getcwd()
+
+if 'PROJETS' not in execution_path:
+    execution_path = join(execution_path, "PROJETS")
+if 'projet_cojoden_avance' not in execution_path:
+    execution_path = join(execution_path, "projet_cojoden_avance")
+
+print(f"[demonstrator] execution path= {execution_path}")
+sys.path.append(execution_path)
+
 import pandas as pd
 from dao.cojoden_dao import *
 import dao.cojoden_dao_search as dao_search

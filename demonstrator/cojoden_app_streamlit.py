@@ -17,10 +17,20 @@ __date__        = "2022-10-01"
 __version__     = "1.0.0"
 
 # ----------------------------------------------------------------------------------
-import sys
 import streamlit as st
 from PIL import Image
-sys.path.append(r"C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance")
+import sys
+from os import getcwd
+from os.path import join
+execution_path = getcwd()
+
+if 'PROJETS' not in execution_path:
+    execution_path = join(execution_path, "PROJETS")
+if 'projet_cojoden_avance' not in execution_path:
+    execution_path = join(execution_path, "projet_cojoden_avance")
+
+print(f"[cojoden_app_streamlit] execution path= {execution_path}")
+sys.path.append(execution_path)
 from bokeh.models.widgets import Button
 from bokeh.models import CustomJS
 from streamlit_bokeh_events import streamlit_bokeh_events

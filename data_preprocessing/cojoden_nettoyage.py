@@ -27,7 +27,14 @@ import csv
 import re
 from IPython.core.display import HTML
 import sys
-sys.path.append(r"C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance")
+execution_path = getcwd()
+
+if 'PROJETS' not in execution_path:
+    execution_path = join(execution_path, "PROJETS")
+if 'projet_cojoden_avance' not in execution_path:
+    execution_path = join(execution_path, "projet_cojoden_avance")
+print(f"[cojoden_nettoyage] execution path= {execution_path}")
+sys.path.append(execution_path)
 from data_preprocessing.cojoden_functions import color_graph_background
 
 
