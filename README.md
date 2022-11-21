@@ -58,7 +58,7 @@ Contient tous les éléments liés à la BDD MySql.
 - [request.sql](dao/request.sql) fichier contenant des requêtes SQL utilisées dans le projet
 - [cojoden_avance_mcd.mwb](dao/cojoden_avance_mcd.mwb) : schéma de la BDD
 
-![Base de données](img/cojoden_avance_mcd.png)
+![Base de données](img/cojoden_avance_mcd_v0.png)
 
 
 - [local_mysql.env](dao/local_mysql.env) information de connexion à la BDD
