@@ -114,7 +114,7 @@ def insert_musee(museo, nom, latitude=None, longitude=None, plaquette_url=None, 
     else:
         if ville is not None and isinstance(ville, str):
             v_id = insert_ville(ville=ville, departement=departement, region1=region1, verbose=verbose)
-            if (v_id is None or len(v_id) == 0):
+            if (v_id is None or v_id == 0 or (isinstance(v_id, list) and len(v_id)==0)):
                 if verbose > 0: print(f"[{shortname}] \tWARN : {ville} not found and not inserted.")
                 ville = None
             else:
@@ -322,12 +322,14 @@ def insert_concerner(ref_oeuvre, domaine, verbose=0):
 
     if domaine is not None and isinstance(domaine, str):
         v_id = insert_domaine(domaine=domaine, verbose=verbose)
-        if (v_id is None or len(v_id) == 0):
+        if (v_id is None or v_id == 0 or (isinstance(v_id, list) and len(v_id)==0)):
             if verbose > 0: print(f"[{shortname}] \tWARN : {domaine} not found and not inserted.")
             domaine = None
         else:
             if isinstance(v_id, list):
                 domaine = v_id[0][0]
+            else:
+                domaine = v_id
     
     sql = f"INSERT INTO `CONCERNER` (`domaine`, `oeuvre`) VALUES ({domaine}, '{ref_oeuvre}');"
         
@@ -341,14 +343,16 @@ def insert_creer(ref_oeuvre, artiste, role=None, nom_dit=None, verbose=0):
     shortname = 'insert_creer'
     # INSERT INTO `CREER` (`oeuvre`, `artiste`, `role`) VALUES (NULL, NULL, NULL);
 
-    if artiste is None and isinstance(artiste, str):
+    if artiste is not None and isinstance(artiste, str):
         v_id = insert_artiste(nom_naissance=artiste, nom_dit=nom_dit, verbose=verbose)
-        if (v_id is None or len(v_id) == 0):
+        if (v_id is None or v_id == 0 or (isinstance(v_id, list) and len(v_id)==0)):
             if verbose > 0: print(f"[{shortname}] \tWARN : {artiste} not found and not inserted.")
             artiste = None
         else:
             if isinstance(v_id, list):
                 artiste = v_id[0][0]
+            else:
+                artiste = v_id
     
     sql_start = "INSERT INTO `CREER` (`oeuvre`, `artiste`"
     ref_oeuvre = ref_oeuvre.replace("'", "\\'")
@@ -372,12 +376,18 @@ def insert_composer(ref_oeuvre, materiaux, complement=None, verbose=0):
     shortname = 'insert_composer'
     # INSERT INTO `COMPOSER` (`oeuvre`, `materiaux`, `complement`) VALUES (NULL, NULL, NULL);
 
-    if materiaux is None and isinstance(materiaux, str):
-        # Il faut récupérer l'identifiant du domaine
-        search = search_materiaux_technique(value=materiaux, verbose=verbose)
-        if search is not None and len(search)>0:
-            materiaux = search[0][0]
-    
+    if materiaux is not None and isinstance(materiaux, str):
+        # Il faut récupérer l'identifiant
+        v_id = insert_materiaux(materiaux_technique=materiaux, verbose=verbose)
+        if (v_id is None or v_id == 0 or (isinstance(v_id, list) and len(v_id)==0)):
+            if verbose > 0: print(f"[{shortname}] \tWARN : {materiaux} not found and not inserted.")
+            materiaux = None
+        else:
+            if isinstance(v_id, list):
+                materiaux = v_id[0][0]
+            else:
+                materiaux = v_id
+        
     sql_start = "INSERT INTO `CREER` (`oeuvre`, `artiste`"
     ref_oeuvre = ref_oeuvre.replace("'", "\\'")
     sql_val = f") VALUES ('{ref_oeuvre}', {materiaux}"
@@ -524,10 +534,42 @@ def _test_insert_concerner(verbose=1):
         
         assert res == expected
     
+def _test_insert_creer(verbose=1):
+    to_test = {
+        # (ref_oeuvre,artiste, role, nom_dit)
+        ("test_oeuvre_1", 36847, 'acteur', None)                   : 0,
+        ("test_oeuvre_1", 40275, 'acteur2', None)                  : 0,
+        ("test_oeuvre_2", "RAOUL joconde", 'acteur', "joconde")    : 0,
+        ("test_oeuvre_2", "RAOUL", 'acteur 3', None)    : 0,
+    }
+    for (ref_oeuvre,artiste, role, nom_dit), expected in tqdm(to_test.items(), desc="insert_creer"):
+        res = insert_creer(ref_oeuvre=ref_oeuvre, artiste=artiste, role=role, nom_dit=nom_dit, verbose=verbose)
+        if isinstance(res, list) and len(res)>0:
+            res = res[0][0]
+        assert res == expected
+
+def _test_insert_composer(verbose=0):
+    to_test = {
+        # (ref_oeuvre,materiaux)
+        ("test_oeuvre_1", 10)                   : 0,
+        ("test_oeuvre_1", 20)                   : 0,
+        ("test_oeuvre_2", "agate")              : 0,
+        ("test_oeuvre_2", "test_mat_3")         : 0,
+    }
+    for (ref_oeuvre,materiaux), expected in tqdm(to_test.items(), desc="insert_composer"):
+        res = insert_composer(ref_oeuvre=ref_oeuvre, materiaux=materiaux, verbose=verbose)
+        if isinstance(res, list) and len(res)>0:
+            res = res[0][0]
+        assert res == expected
 
 def _test_clean_after_run(verbose=1):
 
     to_execute = [
+        # Suppression des clés étrangères en 1er
+        "DELETE FROM concerner WHERE oeuvre LIKE 'test_oeuvre_%';",
+        "DELETE FROM creer WHERE oeuvre LIKE 'test_oeuvre_%';",
+        "DELETE FROM composer WHERE oeuvre LIKE 'test_oeuvre_%';",
+        
         "DELETE FROM VILLE WHERE id > '410';",      # Suppression des lignes qui ont été insérées hors populate initial
         "ALTER TABLE VILLE auto_increment = 411;"
 
@@ -538,7 +580,9 @@ def _test_clean_after_run(verbose=1):
         "DELETE FROM artiste WHERE id > '46236';",  # Suppression des lignes qui ont été insérées hors populate initial
         "ALTER TABLE artiste auto_increment = 46237;"
 
-        "DELETE FROM concerner WHERE oeuvre LIKE 'test_oeuvre_%';",
+        "DELETE FROM materiaux_technique WHERE id > '8462';",  # Suppression des lignes qui ont été insérées hors populate initial
+        "ALTER TABLE materiaux_technique auto_increment = 8463;"
+
         "DELETE FROM oeuvre WHERE ref LIKE 'test_oeuvre_%';",
 
         "DELETE FROM domaine WHERE id > '142';",    # Suppression des lignes qui ont été insérées hors populate initial
@@ -570,5 +614,7 @@ if __name__ == '__main__':
     _test_insert_domaine(verbose=verbose)
     _test_insert_materiaux(verbose=verbose)
     _test_insert_concerner(verbose=verbose)
+    _test_insert_creer(verbose=verbose)
+    _test_insert_composer(verbose=verbose)
     _test_clean_after_run(verbose=verbose)
 

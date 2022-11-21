@@ -360,3 +360,13 @@ INSERT INTO `MUSEE` (`museo`, `nom_search`, `nom` , `ville`) VALUES ('test_museo
 SELECT max(id) FROM artiste;
 
 SELECT * FROM oeuvre LIMIT 100;
+
+SELECT * FROM musee WHERE ville = 319 LIMIT 100;
+
+SELECT * FROM materiaux_technique;
+
+SELECT max(id) FROM materiaux_technique;
+
+SELECT * FROM oeuvre WHERE lieux_conservation = 'M0197' LIMIT 100;
+
+SELECT * from ville where region1 LIKE 'BRETAGNE';
