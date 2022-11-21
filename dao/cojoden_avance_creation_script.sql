@@ -89,10 +89,10 @@ ENGINE = InnoDB;
 
 CREATE TABLE IF NOT EXISTS `OEUVRE` (
   `ref` VARCHAR(100) NOT NULL,
-  `titre` VARCHAR(1000) NULL,
+  `titre` VARCHAR(10000) NULL,
   `type` VARCHAR(1000) NULL,
   `domaine` VARCHAR(1000) NULL,
-  `texte` TEXT(10000) NULL,
+  `texte` TEXT(100000) NULL,
   `annee_debut` VARCHAR(45) NULL,
   `annee_fin` VARCHAR(45) NULL,
   `inscriptions` TEXT NULL,
@@ -130,7 +130,7 @@ ENGINE = InnoDB;
 CREATE TABLE IF NOT EXISTS `CREER` (
   `oeuvre` VARCHAR(100) NOT NULL,
   `artiste` INT NOT NULL,
-  `role` VARCHAR(100) NOT NULL,
+  `role` VARCHAR(100),
   PRIMARY KEY (`oeuvre`, `artiste`),
   INDEX `fk_creer_artiste_idx` (`artiste` ASC) VISIBLE,
   INDEX `fk_creer_oeuvre_idx` (`oeuvre` ASC) VISIBLE,

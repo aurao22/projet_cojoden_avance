@@ -44,6 +44,7 @@ if "projet_cojoden_avance" not in execution_path:
     execution_path = join(execution_path, "projet_cojoden_avance")
 if "dao" not in execution_path:
     execution_path = join(execution_path, "dao")
+print(f"[cojoden_dao] execution path= {execution_path}")
 
 # recupere les données du dotenv
 DENV = dotenv_values(join(execution_path,"local_mysql.env"))
@@ -273,10 +274,10 @@ def _create_table_materiaux_technique(verbose=0):
 def _create_table_oeuvre(verbose=0):
     res = executer_sql("""CREATE TABLE IF NOT EXISTS `oeuvre` (
     `ref` VARCHAR(100) NOT NULL,
-    `titre` VARCHAR(1000) NULL,
+    `titre` VARCHAR(10000) NULL,
     `type` VARCHAR(1000) NULL,
     `domaine` VARCHAR(1000) NULL,
-    `texte` TEXT(10000) NULL,
+    `texte` TEXT(100000) NULL,
     `annee_debut` VARCHAR(45) NULL,
     `annee_fin` VARCHAR(45) NULL,
     `inscriptions` TEXT NULL,
@@ -318,7 +319,7 @@ def _create_table_creer(verbose=0):
     res = executer_sql("""CREATE TABLE IF NOT EXISTS `creer` (
     `oeuvre` VARCHAR(100) NOT NULL,
     `artiste` INT NOT NULL,
-    `role` VARCHAR(100) NOT NULL,
+    `role` VARCHAR(100),
     PRIMARY KEY (`oeuvre`, `artiste`),
     INDEX `fk_creer_artiste_idx` (`artiste` ASC) VISIBLE,
     INDEX `fk_creer_oeuvre_idx` (`oeuvre` ASC) VISIBLE,
