@@ -22,7 +22,14 @@ from os.path import join, exists
 import sys
 import pandas as pd
 import mysql.connector
-sys.path.append(r"C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance")
+from os import getcwd
+execution_path = getcwd()
+if 'PROJETS' not in execution_path:
+    execution_path = join(execution_path, "PROJETS")
+if 'projet_cojoden_avance' not in execution_path:
+    execution_path = join(execution_path, "projet_cojoden_avance")
+print(f"[cojoden_dao_populate_from_csv] execution path= {execution_path}")
+sys.path.append(execution_path)
 from data_preprocessing.cojoden_functions import convert_df_string_to_search_string
 from dao.cojoden_dao import executer_sql, create_engine, TABLES_NAME
 from tqdm import tqdm
@@ -128,6 +135,7 @@ def populate_artiste(dataset_path, file_name=r'cojoden_artistes.csv', verbose=0)
         df = df[['id','nom_search', 'nom_naissance', 'dit']]
         df = df.sort_values('nom_search')
         df = df.drop_duplicates('nom_search')
+        df = df.rename(columns={"dit":"nom_dit"})
         df.to_csv(join(dataset_path,file_name.replace(".csv", "-v2.csv")), index=False)
         
         nb_pop = _populate_df_generic(df=df, table_name='artiste'.lower(), verbose=verbose)
@@ -182,6 +190,11 @@ def populate_oeuvre(dataset_path, file_name=r'cojoden_oeuvres.csv', verbose=0):
                 df[col] = df[col].astype(int)
             except:
                 pass
+        if verbose>0:
+            print(f"[{short_name}] \tINFO : {df.shape}")
+        df = df[df['lieux_conservation'].notna()]
+        if verbose>0:
+            print(f"[{short_name}] \tINFO : {df.shape} after removing empty `lieux_conservation`")
 
         df.to_csv(join(dataset_path,file_name.replace(".csv", "-v2.csv")), index=False)
 
@@ -197,7 +210,30 @@ def populate_creer(dataset_path, file_name=r'cojoden_creation_oeuvres.csv', verb
         file_name (str, optional):the CSV file name
         verbose (int, optional): Log level. Defaults to 0.
     """
-    nb_pop = _populate_generic(dataset_path=dataset_path, file_name=file_name, table_name='CREER', verbose=verbose)
+    short_name = 'populate_creer'
+    nb_pop = 0
+    
+    file_path = join(dataset_path, file_name)
+
+    if exists(file_path):
+        df = pd.read_csv(file_path)
+        if verbose>1:
+            print(f"[{short_name}] \tDEBUG : {df.shape}")
+        df = df[df['artiste'].notna()]
+        if verbose>1:
+            print(f"[{short_name}] \tDEBUG : {df.shape} after removing empty `artiste`")
+        df = df[df['oeuvre'].notna()]
+        if verbose>1:
+            print(f"[{short_name}] \tDEBUG : {df.shape} after removing empty `oeuvre`")
+        df["NB_NA"] = df.isna().sum(axis=1)
+        df = df.sort_values(by=["NB_NA"], ascending=True)
+        df = df.drop_duplicates(subset=["artiste", "oeuvre"], keep="first")
+        df = df.drop(columns=["NB_NA"])
+        if verbose>1:
+            print(f"[{short_name}] \tDEBUG : {df.shape} after removing duplicated")
+        df.to_csv(join(dataset_path,file_name.replace(".csv", "-v2.csv")), index=False)
+        nb_pop = _populate_df_generic(df=df, table_name='CREER', verbose=verbose)
+    
     return nb_pop
 
 def populate_composer(dataset_path, file_name=r'cojoden_materiaux_techniques_compose.csv', verbose=0):
@@ -208,7 +244,29 @@ def populate_composer(dataset_path, file_name=r'cojoden_materiaux_techniques_com
         file_name (str, optional):the CSV file name
         verbose (int, optional): Log level. Defaults to 0.
     """
-    nb_pop = _populate_generic(dataset_path=dataset_path, file_name=file_name, table_name='COMPOSER', verbose=verbose)
+    short_name = 'populate_composer'
+    nb_pop = 0
+    
+    file_path = join(dataset_path, file_name)
+
+    if exists(file_path):
+        df = pd.read_csv(file_path)
+        if verbose>1:
+            print(f"[{short_name}] \tDEBUG : {df.shape}")
+        df = df[df['materiaux'].notna()]
+        if verbose>1:
+            print(f"[{short_name}] \tDEBUG : {df.shape} after removing empty `materiaux`")
+        df = df[df['oeuvre'].notna()]
+        if verbose>1:
+            print(f"[{short_name}] \tDEBUG : {df.shape} after removing empty `oeuvre`")
+        
+        df = df.drop_duplicates(subset=["materiaux", "oeuvre"])
+        
+        if verbose>1:
+            print(f"[{short_name}] \tDEBUG : {df.shape} after removing duplicated")
+        df.to_csv(join(dataset_path,file_name.replace(".csv", "-v2.csv")), index=False)
+        nb_pop = _populate_df_generic(df=df, table_name='COMPOSER', verbose=verbose)
+    
     return nb_pop
 
 def populate_domaine(dataset_path, file_name=r'cojoden_domaines.csv', verbose=0):
@@ -230,21 +288,30 @@ def populate_concerner(dataset_path, file_name=r'cojoden_domaines_concerner.csv'
         file_name (str, optional):the CSV file name
         verbose (int, optional): Log level. Defaults to 0.
     """
-    nb_pop = _populate_generic(dataset_path=dataset_path, file_name=file_name, table_name='CONCERNER', verbose=verbose)
-    return nb_pop
-
-
-def populate_composer(dataset_path, file_name=r'cojoden_materiaux_techniques_compose.csv', verbose=0):
-    """Populate the table with the precise CSV file
+    short_name = 'populate_concerner'
+    nb_pop = 0
     
-    Args:
-        dataset_path (str, optional): the dataset path, path where all CSV files are store. Defaults to r'dataset'.
-        file_name (str, optional):the CSV file name
-        verbose (int, optional): Log level. Defaults to 0.
-    """
-    nb_pop = _populate_generic(dataset_path=dataset_path, file_name=file_name, table_name='COMPOSER', verbose=verbose)
-    return nb_pop
+    file_path = join(dataset_path, file_name)
 
+    if exists(file_path):
+        df = pd.read_csv(file_path)
+        if verbose>1:
+            print(f"[{short_name}] \tDEBUG : {df.shape}")
+        df = df[df['domaine'].notna()]
+        if verbose>1:
+            print(f"[{short_name}] \tDEBUG : {df.shape} after removing empty `domaine`")
+        df = df[df['oeuvre'].notna()]
+        if verbose>1:
+            print(f"[{short_name}] \tDEBUG : {df.shape} after removing empty `oeuvre`")
+        
+        df = df.drop_duplicates(subset=["domaine", "oeuvre"])
+        
+        if verbose>1:
+            print(f"[{short_name}] \tDEBUG : {df.shape} after removing duplicated")
+        df.to_csv(join(dataset_path,file_name.replace(".csv", "-v2.csv")), index=False)
+        nb_pop = _populate_df_generic(df=df, table_name='CONCERNER', verbose=verbose)
+    
+    return nb_pop
 
 
 def populate_database(dataset_path=r'dataset', verbose=0):
@@ -263,9 +330,34 @@ def populate_database(dataset_path=r'dataset', verbose=0):
         if verbose>0: print(f"[{short_name}] \tINFO : {nb} {table_name} inserted")
         tot += nb
 
-    if verbose>0: print(f"[{short_name}] \tINFO : {tot} datas inserted (all table included)")
+    if verbose>0: print(f"[{short_name}] \tINFO : {tot} datas inserted (all table included)\n[{short_name}] \tINFO : Update AUTO_INCREMENT....")
+    update_auto_increments(verbose=verbose)
+    if verbose>0: print(f"[{short_name}] \tINFO : Update AUTO_INCREMENT.... END")
+
     return tot
 
+def update_auto_increments(verbose=0):
+    """After populate we need to update the auto_increments number
+
+    Args:
+        verbose (int, optional): _description_. Defaults to 0.
+    """
+    shortname = "update_auto_increments"
+    to_updates = ["ville", "domaine", "artiste", "materiaux_technique"]
+
+    for table in to_updates:
+        try:
+            sql = f"select max(id) FROM {table};"
+            max_key = executer_sql(sql=sql,verbose=verbose)
+            if max_key is not None and len(max_key)>0:
+                max_key = max_key[0][0]
+            else:
+                max_key = 0
+            sql = f"ALTER TABLE {table} auto_increment = {max_key+1};"
+            res = executer_sql(sql=sql,verbose=verbose)
+        except Exception as error:
+            print(f"[{shortname}]\tERROR on table {table} => {sql} => {error}")
+    
 # ----------------------------------------------------------------------------------
 #                        PRIVATE
 # ----------------------------------------------------------------------------------
@@ -302,7 +394,7 @@ def _populate_df_generic(df, table_name, verbose=0):
         
     dbConnection =create_engine(verbose=verbose)
     try:
-        nb_pop = df.to_sql(name=table_name.lower(), con=dbConnection, if_exists='replace', index=False, chunksize=10)
+        nb_pop = df.to_sql(name=table_name.lower(), con=dbConnection, if_exists='append', index=False, chunksize=10)
     except mysql.connector.IntegrityError as error:
         nb_pop = 0
         if verbose > 0:
@@ -327,9 +419,9 @@ _datas_populate_expected = {
     "musee"    :    482,    # OK
     "materiaux_technique" :   8462, # OK
     "artiste"   :  46235,   # 2 324 are missing in BDD => L'affichage dans VS code est faux, il y a bien 46235 en BDD
-    "oeuvre"   : 605157,    # 16 510 de plus  in BDD ??? => 605157 en BDD
-    "composer"  :1247151,   # 3 063 en moins in BDD => 1247151
-    "creer"     : 639497,   # 2 062 en moins in BDD => 639497
+    "oeuvre"   :  605079,   # 605157 en tout mais 605079 avec lieux de conservation renseigné
+    "composer"  :1247151,   
+    "creer"     : 639218,   # 639497, less duplicated 639238
     "concerner" : 868730,   # 625 828 en moins in DSS => 868730
 }
 
@@ -352,6 +444,7 @@ def _test_check_nb_data(verbose=1):
 # %%                       MAIN
 # ----------------------------------------------------------------------------------
 if __name__ == '__main__':
+    verbose = 1
     dataset_path=r'C:\Users\User\WORK\workspace-ia\PROJETS\projet_cojoden_avance\dataset'
     # populate_metier(dataset_path=dataset_path, verbose=verbose)
     # populate_ville(dataset_path=dataset_path, verbose=verbose)
@@ -363,6 +456,7 @@ if __name__ == '__main__':
     # populate_composer(dataset_path=dataset_path, verbose=verbose)
     # populate_domaine(dataset_path=dataset_path, verbose=verbose)
     # populate_concerner(dataset_path=dataset_path, verbose=verbose)
+    # update_auto_increments(verbose=1)
     _test_populate(dataset_path=dataset_path, verbose=1)
     _test_check_nb_data(verbose=1)
     
