@@ -222,11 +222,11 @@ def insert_oeuvre(ref,titre,type_oeuvre,lieux_conservation,texte=None, annee_deb
 
         if annee_debut is not None  and len(annee_debut)>0:
             sql_start   += ", `annee_debut`"
-            sql_val     += f", '{int(annee_debut)}'"
+            sql_val     += f", '{annee_debut}'"
 
         if annee_fin is not None  and len(annee_fin)>0:
             sql_start   += ", `annee_fin`"
-            sql_val     += f", '{int(annee_fin)}'"
+            sql_val     += f", '{annee_fin}'"
 
         if inscriptions is not None  and len(inscriptions)>0:
             sql_start   += ", `inscriptions`"

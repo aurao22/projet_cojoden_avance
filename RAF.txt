@@ -13,9 +13,9 @@ Extraction RAF :
 	- Recherche sur distance			=> DONE
 	- Module de recherches				=> DONE
 	- IHM streamlit pour la recherche 	=> DONE
-	- Insertion en BDD d'une oeuvre (oeuvre par oeuvre)
-	- => correction des auto increments => IN PROGRESS
-	- => Corriger image MCD BDD
+	- Insertion en BDD d'une oeuvre 	=> DONE
+	- => correction des auto increments => DONE
+	- => Corriger image MCD BDD => DONE
 	
 	# Facultatif
 	- Améliorer le résultat et préciser le nombre d'oeuvre du critère (artiste ou oeuvre)
@@ -54,3 +54,17 @@ AND  oeuvre.ref in (
   AND mat_search LIKE '%agate%')
   
 LIMIT 100;
+
+'40', 'BAUD', 'Baud', 'Morbihan', 'Bretagne', NULL, NULL
+'64', 'BREST', 'Brest', 'Finistère', 'Bretagne', NULL, NULL
+'107', 'CONCARNEAU', 'Concarneau', 'Finistère', 'Bretagne', NULL, NULL
+'196', 'LORIENT', 'Lorient', 'Morbihan', 'Bretagne', NULL, NULL
+'236', 'MORLAIX', 'Morlaix', 'Finistère', 'Bretagne', NULL, NULL
+'294', 'PONT AVEN', 'Pont-Aven', 'Finistère', 'Bretagne', NULL, NULL
+'297', 'PORT LOUIS', 'Port-Louis', 'Morbihan', 'Bretagne', NULL, NULL
+'299', 'QUIMPER', 'Quimper', 'Finistère', 'Bretagne', NULL, NULL
+'305', 'RENNES', 'Rennes', 'Ille-et-Vilaine', 'Bretagne', NULL, NULL
+'319', 'SAINT BRIEUC', 'Saint-Brieuc', 'Côtes-d\'Armor', 'Bretagne', NULL, NULL
+'333', 'SAINT MALO', 'Saint-Malo', 'Ille-et-Vilaine', 'Bretagne', NULL, NULL
+'388', 'VANNES', 'Vannes', 'Morbihan', 'Bretagne', NULL, NULL
+'405', 'VITRE', 'Vitré', 'Ille-et-Vilaine', 'Bretagne', NULL, NULL
