@@ -12,7 +12,7 @@ Usage:
 """
 __authors__     = ("Aurélie RAOUL")
 __contact__     = ("aurelie.raoul@yahoo.fr")
-__copyright__   = "MIT"
+__copyright__   = "GNU GENERAL PUBLIC LICENSE"
 __date__        = "2022-10-01"
 __version__     = "1.0.0"
 # ----------------------------------------------------------------------------------
